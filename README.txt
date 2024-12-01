@@ -1,0 +1,5 @@
+En aquest treball, hem après com fer un sistema multijugador en Unity utilitzant Unity transport seguint l'exemple de la documentació de SimpleClientServer. 
+
+Seguint el codi proporcionat per les parts del client i servidor i adaptant-les a les configuracions de l'aula (com que l'aula no té ports oberts, hem utilitzat el localhost en la mateixa màquina i hem obert diferents projectes de Unity, simulant com si fossin dues màquines diferents).
+
+Després, hem utilitzat les PIPELINES de Unity perquè els missatges es puguin trossejar (per si aquests poguessin ser molt llargs) i hem fet que un cop connectat el primer client amb el servidor, aquest últim enviés un missatge utilitzant BeginSend, EndSend i Read amb les dades de la connexió (nom del servidor, del client que li hagi posat aquest i del temps que porta encès) i quan es conneta el segon client amb el servidor, aquest li enviï un missatge amb la mateixa estructura però també amb el nom del primer client connectat.
