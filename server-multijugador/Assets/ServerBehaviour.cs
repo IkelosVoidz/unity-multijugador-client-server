@@ -10,7 +10,7 @@ namespace Unity.Networking.Transport.Samples
 {
     public class ServerBehaviour : MonoBehaviour
     {
-        public TMP_Text IP_Text;
+        [SerializeField] private TMP_Text IP_Text;
 
         NetworkDriver m_Driver;
         NetworkPipeline m_Pipeline;
