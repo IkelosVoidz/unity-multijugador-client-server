@@ -2,16 +2,21 @@ using UnityEngine;
 using Unity.Collections;
 using Unity.Networking.Transport;
 using System.Collections.Generic;
+using TMPro;
+using System.Net;
+using System.Net.Sockets;
 
 namespace Unity.Networking.Transport.Samples
 {
     public class ServerBehaviour : MonoBehaviour
     {
+        public TMP_Text IP_Text;
+
         NetworkDriver m_Driver;
         NetworkPipeline m_Pipeline;
         NativeList<NetworkConnection> m_Connections;
         string serverName = "Sergi, Pol, Ramon SERVER";
-        List<string> availableCharacters = new List<string> { "Personaje1", "Personaje2", "Personaje3" };
+        List<string> availableCharacters = new List<string> { "Personaje1", "Personaje2", "Personaje3", "Personaje4" };
         Dictionary<NetworkConnection, string> selectedCharacters = new Dictionary<NetworkConnection, string>();
 
         private readonly ushort Port = 7777;
@@ -32,7 +37,21 @@ namespace Unity.Networking.Transport.Samples
                 return;
             }
             m_Driver.Listen();
-            Debug.Log($"Servidor iniciado en la IP: {NetworkEndpoint.AnyIpv4.Address} y puerto: {Port}");
+            Debug.Log($"Servidor iniciado en la IP: {GetLocalIPAddress()} y puerto {endpoint.Port}");
+            IP_Text.text = $"IP: {GetLocalIPAddress()}:{endpoint.Port}";
+        }
+
+        private string GetLocalIPAddress()
+        {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    return ip.ToString();
+                }
+            }
+            throw new System.Exception("No network adapters with an IPv4 address in the system!");
         }
 
         void OnDestroy()
