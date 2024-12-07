@@ -6,37 +6,23 @@ using UnityEngine.UI;
 
 public class LoadCharacter : MonoBehaviour
 {
-    public TMP_Text characterText;
-    public Image imageCharacter;
+    [SerializeField] private TMP_Text characterText;
+    [SerializeField] private Image characterImage;
 
-    public Sprite personatge1;
-    public Sprite personatge2;
-    public Sprite personatge3;
-    public Sprite personatge4;
+    [SerializeField] private List<Sprite> characterSprites = new List<Sprite>();
 
-    private
-    // Start is called before the first frame update
+
     void Start()
     {
-        string personatgeEscollit = ClientBehaviour.Instance.GetPersonatgeEscollit();
+        string chosenCharacter = ClientBehaviour.Instance.GetChosenCharacter();
 
-        if (personatgeEscollit != null)
-        {
-            characterText.text = personatgeEscollit;
+        if (chosenCharacter == null) return;
 
-            switch (personatgeEscollit)
-            {
-                case "Personaje1":
-                    imageCharacter.sprite = personatge1; break;
-                case "Personaje2":
-                    imageCharacter.sprite = personatge2; break;
-                case "Personaje3":
-                    imageCharacter.sprite = personatge3; break;
-                case "Personaje4":
-                    imageCharacter.sprite = personatge4; break;
-            }
+        characterText.text = chosenCharacter;
 
-            imageCharacter.SetNativeSize();
-        }
+        int characterIndex = int.Parse(chosenCharacter.Substring("Personaje".Length));
+
+        characterImage.sprite = characterSprites[characterIndex - 1];
+        characterImage.SetNativeSize();
     }
 }

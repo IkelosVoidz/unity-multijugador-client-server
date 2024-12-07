@@ -6,9 +6,12 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/ChoosePlayerScene.unity
-    guid: 5606a0b13f0aef2428a305a37ad96bb2
+    path: Assets/Scenes/ClientScene.unity
+    guid: 9fc0d4010bbf28b4594072e72b8655ab
   - enabled: 1
-    path: Assets/Scenes/CharacterChosen.unity
-    guid: 752a2f204ed710644a1bd594446b664d
+    path: Assets/Scenes/CharacterSelection.unity
+    guid: b72c17ab86b6cd841aec23d4938567e5
+  - enabled: 1
+    path: Assets/Scenes/CharacterScreen.unity
+    guid: d442f72589f5a874ab23d67a6fb44e36
   m_configObjects: {}

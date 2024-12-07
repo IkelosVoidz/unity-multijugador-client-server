@@ -3,6 +3,7 @@ using Unity.Collections;
 using Unity.Networking.Transport;
 using System.Collections.Generic;
 using TMPro;
+using System;
 using System.Net;
 using System.Net.Sockets;
 
@@ -15,9 +16,14 @@ namespace Unity.Networking.Transport.Samples
         NetworkDriver m_Driver;
         NetworkPipeline m_Pipeline;
         NativeList<NetworkConnection> m_Connections;
-        string serverName = "Sergi, Pol, Ramon SERVER";
-        List<string> availableCharacters = new List<string> { "Personaje1", "Personaje2", "Personaje3", "Personaje4" };
+        [SerializeField] List<string> m_characters = new List<string> { "Personaje1", "Personaje2", "Personaje3", "Personaje4" };
+        [SerializeField, ReadOnly] private List<string> m_availableCharacters;
         Dictionary<NetworkConnection, string> selectedCharacters = new Dictionary<NetworkConnection, string>();
+
+        private void Awake()
+        {
+            m_availableCharacters = new List<string>(m_characters);
+        }
 
         private readonly ushort Port = 7777;
 
@@ -84,17 +90,23 @@ namespace Unity.Networking.Transport.Samples
                 SendAvailableCharacters(c);
             }
 
-            DataStreamReader stream;
             for (int i = 0; i < m_Connections.Length; i++)
             {
                 if (m_Connections[i].IsCreated)
                 {
+                    DataStreamReader stream;
                     NetworkEvent.Type cmd;
                     while ((cmd = m_Driver.PopEventForConnection(m_Connections[i], out stream)) != NetworkEvent.Type.Empty)
                     {
                         if (cmd == NetworkEvent.Type.Data)
                         {
-                            ProcessClientMessage(m_Connections[i], stream);
+                            ProcessClientMessages(m_Connections[i], stream);
+                        }
+                        else if (cmd == NetworkEvent.Type.Disconnect)
+                        {
+                            Debug.Log($"Client {i} disconnected from the server.");
+                            m_Connections[i] = default;
+                            break;
                         }
                     }
                 }
@@ -105,9 +117,9 @@ namespace Unity.Networking.Transport.Samples
         {
             m_Driver.BeginSend(m_Pipeline, connection, out var writer);
             writer.WriteByte(0x01); // Tipo de mensaje: Lista de personajes disponibles
-            writer.WriteInt(availableCharacters.Count);
+            writer.WriteInt(m_availableCharacters.Count);
 
-            foreach (var character in availableCharacters)
+            foreach (var character in m_availableCharacters)
             {
                 writer.WriteFixedString128(character);
             }
@@ -115,38 +127,44 @@ namespace Unity.Networking.Transport.Samples
             Debug.Log("Lista de personajes enviados.");
         }
 
-        void ProcessClientMessage(NetworkConnection connection, DataStreamReader stream)
+        void ProcessClientMessages(NetworkConnection connection, DataStreamReader stream)
         {
             byte messageType = stream.ReadByte();
-            if (messageType == 0x02) // Selección de personaje
+            switch (messageType)
             {
-                var selectedCharacter = stream.ReadFixedString128().ToString();
-                if (availableCharacters.Contains(selectedCharacter))
-                {
-                    availableCharacters.Remove(selectedCharacter);
-                    selectedCharacters[connection] = selectedCharacter;
-                    Debug.Log($"Cliente seleccionó: {selectedCharacter}");
-                    ConfirmCharacterSelection(connection, selectedCharacter);
-                }
-                else
-                {
-                    NotifyCharacterUnavailable(connection);
-                }
+                case 0x02: // Selección de personaje
+                    {
+                        string selectedCharacter = stream.ReadFixedString128().ToString();
+                        if (!m_availableCharacters.Contains(selectedCharacter)) //Si ja esta seleccionat
+                        {
+                            Debug.Log("Cliente seleccionó un personaje ya seleccionado");
+                            CharacterSelectionResponse(connection, null);
+                            return;
+                        }
+
+                        m_availableCharacters.Remove(selectedCharacter);
+                        selectedCharacters[connection] = selectedCharacter;
+                        Debug.Log($"Cliente seleccionó: {selectedCharacter}");
+                        CharacterSelectionResponse(connection, selectedCharacter);
+
+                        //Notify other clients
+                        foreach (var c in m_Connections)
+                        {
+                            if (c != connection && c.IsCreated) SendAvailableCharacters(c);
+                        }
+                    }
+                    break;
             }
         }
 
-        void ConfirmCharacterSelection(NetworkConnection connection, string character)
+        void CharacterSelectionResponse(NetworkConnection connection, string character)
         {
             m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-            writer.WriteByte(0x03); // Confirmación de personaje
-            writer.WriteFixedString128(character);
-            m_Driver.EndSend(writer);
-        }
+            var messageType = (byte)(character == null ? 0x04 : 0x03);
+            writer.WriteByte(messageType);
 
-        void NotifyCharacterUnavailable(NetworkConnection connection)
-        {
-            m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-            writer.WriteByte(0x04); // Notificación de personaje no disponible
+            if (messageType == 0x03) writer.WriteFixedString128(character);
+
             m_Driver.EndSend(writer);
         }
     }

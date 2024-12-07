@@ -373,11 +373,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   characterText: {fileID: 44113301}
-  imageCharacter: {fileID: 1556143345}
-  personatge1: {fileID: 21300000, guid: 1cabd669fceb7d24dbc3334d8205e6b0, type: 3}
-  personatge2: {fileID: 21300000, guid: dae5efc0f008bc846a09591921e83a31, type: 3}
-  personatge3: {fileID: 21300000, guid: 6eb2589f09bca1846b9257dbbda2fd21, type: 3}
-  personatge4: {fileID: 21300000, guid: 6a9bfa3d556c6dd498e6d825b5c14410, type: 3}
+  characterImage: {fileID: 1556143345}
+  characterSprites:
+  - {fileID: 21300000, guid: 1cabd669fceb7d24dbc3334d8205e6b0, type: 3}
+  - {fileID: 21300000, guid: dae5efc0f008bc846a09591921e83a31, type: 3}
+  - {fileID: 21300000, guid: 6eb2589f09bca1846b9257dbbda2fd21, type: 3}
+  - {fileID: 21300000, guid: 6a9bfa3d556c6dd498e6d825b5c14410, type: 3}
 --- !u!1 &399271854
 GameObject:
   m_ObjectHideFlags: 0

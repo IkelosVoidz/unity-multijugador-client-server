@@ -14,11 +14,11 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
     NetworkDriver m_Driver;
     NetworkPipeline m_Pipeline;
     NetworkConnection m_Connection;
-    public TMP_InputField serverIP;
-    public TMP_InputField serverPort;
+    [SerializeField] TMP_InputField serverIP;
+    [SerializeField] TMP_InputField serverPort;
 
-    private string CharacterChosen = null;
-    private bool IsCharacterChosenConfirmed = false;
+    private string m_characterChosen = null;
+    private bool m_isCharacterChosenConfirmed = false;
 
     void Start()
     {
@@ -59,10 +59,10 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
             if (cmd == NetworkEvent.Type.Connect)
             {
                 Debug.Log("Conexión establecida con el servidor.");
+                SceneManager.LoadScene("CharacterSelection");
             }
             else if (cmd == NetworkEvent.Type.Data)
             {
-                SceneManager.LoadScene("ChoosePlayerScene");
                 PayloadDeconstructor(stream);
             }
             else if (cmd == NetworkEvent.Type.Disconnect)
@@ -73,19 +73,19 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
         }
     }
 
-    public void EscollirPersonatge(int indexPersonatge)
+    public void ChooseCharacter(int indexPersonatge)
     {
-        CharacterChosen = "Personaje" + indexPersonatge;
+        m_characterChosen = "Personaje" + indexPersonatge;
 
         m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
         writer.WriteByte(0x02);
-        writer.WriteFixedString128(CharacterChosen);
+        writer.WriteFixedString128(m_characterChosen);
         m_Driver.EndSend(writer);
     }
 
-    public string GetPersonatgeEscollit()
+    public string GetChosenCharacter()
     {
-        if (IsCharacterChosenConfirmed) return CharacterChosen;
+        if (m_isCharacterChosenConfirmed) return m_characterChosen;
 
         return null;
     }
@@ -103,22 +103,21 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 {
                     string personatge = stream.ReadFixedString128().ToString();
                     personatgesDisponibles.Add(personatge);
-                    Debug.Log(personatge);
                 }
-
+                Debug.Log("Personatges disponibles: " + string.Join(", ", personatgesDisponibles));
                 break;
 
             case 0x03: // El personaje ha ido escogido correctamente
-                IsCharacterChosenConfirmed = true;
+                m_isCharacterChosenConfirmed = true;
                 Debug.Log("El personatge s'ha escollit correctament");
 
-                SceneManager.LoadScene("CharacterChosen");
+                SceneManager.LoadScene("CharacterScreen");
 
                 break;
 
             case 0x04: // El personaje ha ido escogido por otra conexion.
-                CharacterChosen = "";
-                IsCharacterChosenConfirmed = false;
+                m_characterChosen = "";
+                m_isCharacterChosenConfirmed = false;
 
                 Debug.Log("El personatge ha estat escollit per una altra connexió");
                 break;
