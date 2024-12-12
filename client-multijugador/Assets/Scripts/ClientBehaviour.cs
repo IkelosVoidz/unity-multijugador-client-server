@@ -112,7 +112,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 m_isCharacterChosenConfirmed = true;
                 Debug.Log("El personatge s'ha escollit correctament");
 
-                SceneManager.LoadScene("CharacterScreen");
+                SceneManager.LoadScene("GameScene");
 
                 break;
 

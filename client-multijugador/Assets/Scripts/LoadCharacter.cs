@@ -6,8 +6,7 @@ using UnityEngine.UI;
 
 public class LoadCharacter : MonoBehaviour
 {
-    [SerializeField] private TMP_Text characterText;
-    [SerializeField] private Image characterImage;
+    [SerializeField] private SpriteRenderer characterSprite;
 
     [SerializeField] private List<Sprite> characterSprites = new List<Sprite>();
 
@@ -17,12 +16,7 @@ public class LoadCharacter : MonoBehaviour
         string chosenCharacter = ClientBehaviour.Instance.GetChosenCharacter();
 
         if (chosenCharacter == null) return;
-
-        characterText.text = chosenCharacter;
-
         int characterIndex = int.Parse(chosenCharacter.Substring("Personaje".Length));
-
-        characterImage.sprite = characterSprites[characterIndex - 1];
-        characterImage.SetNativeSize();
+        characterSprite.sprite = characterSprites[characterIndex - 1];
     }
 }
