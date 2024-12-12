@@ -20,12 +20,27 @@ namespace Unity.Networking.Transport.Samples
         [SerializeField, ReadOnly] private List<string> m_availableCharacters;
         Dictionary<NetworkConnection, string> selectedCharacters = new Dictionary<NetworkConnection, string>();
 
+        public struct Posicio
+        {
+            public float _x { get; set; }
+            public float _y { get; set; }
+
+            public Posicio(float x, float y)
+            {
+                _x = x;
+                _y = y;
+            }
+        }
+
+        public List<Posicio> initialPositions = new List<Posicio>() {new Posicio(1f, 1f), new Posicio(2f, 2f)};
+        private Dictionary<NetworkConnection, Posicio> characterPositions = new Dictionary<NetworkConnection, Posicio>();
+
         private void Awake()
         {
             m_availableCharacters = new List<string>(m_characters);
         }
 
-        private readonly ushort Port = 7777;
+        [SerializeField] ushort Port = 7777;
 
         void Start()
         {
@@ -133,27 +148,31 @@ namespace Unity.Networking.Transport.Samples
             switch (messageType)
             {
                 case 0x02: // Selección de personaje
+                    string selectedCharacter = stream.ReadFixedString128().ToString();
+                    if (!m_availableCharacters.Contains(selectedCharacter)) //Si ja esta seleccionat
                     {
-                        string selectedCharacter = stream.ReadFixedString128().ToString();
-                        if (!m_availableCharacters.Contains(selectedCharacter)) //Si ja esta seleccionat
-                        {
-                            Debug.Log("Cliente seleccionó un personaje ya seleccionado");
-                            CharacterSelectionResponse(connection, null);
-                            return;
-                        }
-
-                        m_availableCharacters.Remove(selectedCharacter);
-                        selectedCharacters[connection] = selectedCharacter;
-                        Debug.Log($"Cliente seleccionó: {selectedCharacter}");
-                        CharacterSelectionResponse(connection, selectedCharacter);
-
-                        //Notify other clients
-                        foreach (var c in m_Connections)
-                        {
-                            if (c != connection && c.IsCreated) SendAvailableCharacters(c);
-                        }
+                        Debug.Log("Cliente seleccionó un personaje ya seleccionado");
+                        CharacterSelectionResponse(connection, null);
+                        return;
                     }
+
+                    m_availableCharacters.Remove(selectedCharacter);
+                    selectedCharacters[connection] = selectedCharacter;
+                    Debug.Log($"Cliente seleccionó: {selectedCharacter}");
+                    CharacterSelectionResponse(connection, selectedCharacter);
+
+                    //Notify other clients
+                    foreach (var c in m_Connections)
+                    {
+                        if (c != connection && c.IsCreated) SendAvailableCharacters(c);
+                    }
+                    
                     break;
+                
+                case 0x06: // Cliente envia la posicion nueva a la que se quiere mover
+                    //characterPositions[connection] = initialPositions[]
+                    break;
+                
             }
         }
 
@@ -163,7 +182,10 @@ namespace Unity.Networking.Transport.Samples
             var messageType = (byte)(character == null ? 0x04 : 0x03);
             writer.WriteByte(messageType);
 
-            if (messageType == 0x03) writer.WriteFixedString128(character);
+            if (messageType == 0x03) {
+                writer.WriteFixedString128(character);
+
+            }
 
             m_Driver.EndSend(writer);
         }
