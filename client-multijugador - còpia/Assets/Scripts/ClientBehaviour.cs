@@ -39,6 +39,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 
     void OnDestroy()
     {
+        m_Driver.Disconnect(m_Connection);
         m_Driver.Dispose();
     }
 
@@ -59,7 +60,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
             if (cmd == NetworkEvent.Type.Connect)
             {
                 Debug.Log("Conexión establecida con el servidor.");
-                SceneManager.LoadScene("CharacterSelection");
+                SceneManager.LoadScene("CharacterSelection"); // En aquesta escena hi ha botons que criden 
             }
             else if (cmd == NetworkEvent.Type.Data)
             {
