@@ -337,6 +337,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   IP_Text: {fileID: 2096439059}
+  m_characters:
+  - Personaje1
+  - Personaje2
+  - Personaje3
+  - Personaje4
+  m_availableCharacters: []
+  Port: 5069
 --- !u!1 &1110112130
 GameObject:
   m_ObjectHideFlags: 0
