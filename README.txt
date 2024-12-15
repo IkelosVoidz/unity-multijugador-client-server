@@ -34,6 +34,22 @@ L'error de lultima part ha estat solucionat, i s'ha seguit el que deia el docume
 
 NOTA IMPORTANT : No esta controlat que un client entri al joc abans que el segon es connecti per primera vegada
 quan aixo passa hi han errors, ho arreglarem per al treball, per ara, assegurar-se que s'han connectat els dos clients abans de
-seleccionar cap personatge
+seleccionar cap personatge.
+
+Sobre els punts d'aquesta part 
+
+1. Nivell creat, hi ha varies plataformes , es el mateix nivell al servidor i es representen les posicions de tots els clients
+2, 3, Les posicions inicials es defineixen per l'array de transforms initialPositions al servidor, i quan es seleccionen personatges als clients 
+es gestiona el Spawn dels players desde el servidor cap a cada client, tenint en conta que nomes s'han de spawnejar quan s'entra a la escena de joc
+I que el player del client no es el mateix que els personatges instanciats desde el servidor 
+
+4. Cal afegir el moviment del personatge
+i. S’ha d’utilitzar RigidBody2D i les físiques del Unity3D : fet
+ii. La posició real s’ha de calcular al servidor : fet
+iii. La posició s’ha de simular al client i el servidor ha de corregirlo : fet, es te un maxDistanceThreshold i si la distancia entre la ultima posicio 
+que s'ha enviat desde el client i la nova posicio es major que aquest threshold es capa la distancia moguda a aquest threshold en la direccio 
+en la que anava el client
+
+
 
 
