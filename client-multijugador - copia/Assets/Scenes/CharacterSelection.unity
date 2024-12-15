@@ -710,6 +710,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5fe1fddd78b9a154f9ad0e86fcbd63f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  characterButtons:
+  - {fileID: 2070444985}
+  - {fileID: 766710409}
+  - {fileID: 1880346407}
+  - {fileID: 254128678}
 --- !u!1 &755999340
 GameObject:
   m_ObjectHideFlags: 0
@@ -1372,8 +1377,8 @@ Camera:
   m_GameObject: {fileID: 1517250610}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0.16901031, g: 0.1693218, b: 0.16981131, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -1397,7 +1402,7 @@ Camera:
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
-  orthographic: 0
+  orthographic: 1
   orthographic size: 5
   m_Depth: 0
   m_CullingMask:

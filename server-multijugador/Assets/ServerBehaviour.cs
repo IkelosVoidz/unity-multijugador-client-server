@@ -45,6 +45,7 @@ namespace Unity.Networking.Transport.Samples
 
         [SerializeField, ReadOnly] private List<string> m_availableCharacters;
         [SerializeField] List<Transform> m_initialPlayerPositions = new List<Transform>();
+        [SerializeField] public float moveDistanceThreshold = 1f;
         Dictionary<NetworkConnection, PlayerReference> m_playerReferences = new Dictionary<NetworkConnection, PlayerReference>();
 
         public int GetCharacterIndexByName(string name) => m_characters.FindIndex(c => c.name == name);
@@ -195,8 +196,34 @@ namespace Unity.Networking.Transport.Samples
 
                     break;
 
-                case 0x06: // Cliente envia la Vector2n nueva a la que se quiere mover
-                    //characterPositions[connection] = initialPositions[]
+                case 0x06:
+                    var x = stream.ReadFloat();
+                    var y = stream.ReadFloat();
+
+                    Vector2 newPos = new Vector2(x, y);
+                    Vector2 lastPos = m_playerReferences[connection].transform.position;
+
+
+                    if (Vector2.Distance(newPos, lastPos) > moveDistanceThreshold)
+                    {
+                        Vector2 direction = (newPos - lastPos).normalized;
+                        newPos = lastPos + direction * moveDistanceThreshold; //Capem el moviment al max threshold 
+
+                        SendCorrectPositionToClients(connection, newPos);
+                    }
+
+
+                    var index = m_Connections.IndexOf(connection);
+                    Debug.Log($"Client {index} moved {m_playerReferences[connection].character} to ({newPos.x}, {newPos.y})");
+
+                    m_playerReferences[connection].transform.SetPositionAndRotation(newPos, m_playerReferences[connection].transform.rotation);
+
+                    //Notify other clients
+                    foreach (var c in m_Connections)
+                    {
+                        if (c != connection && c.IsCreated) SendCharacterInfo(c, m_playerReferences[connection]);
+                    }
+
                     break;
 
             }
@@ -226,6 +253,17 @@ namespace Unity.Networking.Transport.Samples
             writer.WriteFixedString128(player.character);
             writer.WriteFloat(player.transform.position.x);
             writer.WriteFloat(player.transform.position.y);
+            m_Driver.EndSend(writer);
+        }
+
+
+        void SendCorrectPositionToClients(NetworkConnection connection, Vector2 correctPosition)
+        {
+            m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+            writer.WriteByte(0x05);
+
+            writer.WriteFloat(correctPosition.x);
+            writer.WriteFloat(correctPosition.y);
             m_Driver.EndSend(writer);
         }
     }

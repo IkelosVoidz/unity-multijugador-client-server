@@ -27,3 +27,13 @@ Per tant aquest client que no pot rebre no reacciona i executa les accions que s
 
 El servidor si rep tots els seus missatges, pero el client no rep les respostes
 No hem aconseguit reproduir l'error consistenment pero creiem que es quan es fa la connexio en local, tal i com passava amb la primera part que s'enviaven multiples missatges al client sols quan era en local
+
+TERCERA PART DEL TREBALL
+
+L'error de lultima part ha estat solucionat, i s'ha seguit el que deia el document
+
+NOTA IMPORTANT : No esta controlat que un client entri al joc abans que el segon es connecti per primera vegada
+quan aixo passa hi han errors, ho arreglarem per al treball, per ara, assegurar-se que s'han connectat els dos clients abans de
+seleccionar cap personatge
+
+

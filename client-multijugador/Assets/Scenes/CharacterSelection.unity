@@ -710,7 +710,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5fe1fddd78b9a154f9ad0e86fcbd63f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  characterButtons: []
+  characterButtons:
+  - {fileID: 2070444985}
+  - {fileID: 766710409}
+  - {fileID: 1880346407}
+  - {fileID: 254128678}
 --- !u!1 &755999340
 GameObject:
   m_ObjectHideFlags: 0
