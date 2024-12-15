@@ -6,9 +6,27 @@ using TMPro;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Linq;
+using Unity.Mathematics;
 
 namespace Unity.Networking.Transport.Samples
 {
+
+    public class PlayerReference
+    {
+        public string character;
+        public Transform transform;
+
+    }
+
+
+    [Serializable]
+    public class Character
+    {
+        public string name;
+        public Sprite sprite;
+    }
+
     public class ServerBehaviour : MonoBehaviour
     {
         [SerializeField] private TMP_Text IP_Text;
@@ -16,28 +34,25 @@ namespace Unity.Networking.Transport.Samples
         NetworkDriver m_Driver;
         NetworkPipeline m_Pipeline;
         NativeList<NetworkConnection> m_Connections;
-        [SerializeField] List<string> m_characters = new List<string> { "Personaje1", "Personaje2", "Personaje3", "Personaje4" };
-        [SerializeField, ReadOnly] private List<string> m_availableCharacters;
-        Dictionary<NetworkConnection, string> selectedCharacters = new Dictionary<NetworkConnection, string>();
-
-        public struct Posicio
+        [SerializeField]
+        List<Character> m_characters = new List<Character>
         {
-            public float _x { get; set; }
-            public float _y { get; set; }
+            new () { name = "Personaje1" },
+            new () { name = "Personaje2" },
+            new () { name = "Personaje3" },
+            new () { name = "Personaje4" }
+        };
 
-            public Posicio(float x, float y)
-            {
-                _x = x;
-                _y = y;
-            }
-        }
+        [SerializeField, ReadOnly] private List<string> m_availableCharacters;
+        [SerializeField] List<Transform> m_initialPlayerPositions = new List<Transform>();
+        Dictionary<NetworkConnection, PlayerReference> m_playerReferences = new Dictionary<NetworkConnection, PlayerReference>();
 
-        public List<Posicio> initialPositions = new List<Posicio>() {new Posicio(1f, 1f), new Posicio(2f, 2f)};
-        private Dictionary<NetworkConnection, Posicio> characterPositions = new Dictionary<NetworkConnection, Posicio>();
+        public int GetCharacterIndexByName(string name) => m_characters.FindIndex(c => c.name == name);
+
 
         private void Awake()
         {
-            m_availableCharacters = new List<string>(m_characters);
+            m_availableCharacters = new List<string>(m_characters.Select(c => c.name));
         }
 
         [SerializeField] ushort Port = 7777;
@@ -46,8 +61,7 @@ namespace Unity.Networking.Transport.Samples
         {
             m_Driver = NetworkDriver.Create();
             m_Pipeline = m_Driver.CreatePipeline(
-                typeof(ReliableSequencedPipelineStage),
-                typeof(UnreliableSequencedPipelineStage)
+                typeof(ReliableSequencedPipelineStage)
             );
             m_Connections = new NativeList<NetworkConnection>(16, Allocator.Persistent);
 
@@ -131,7 +145,7 @@ namespace Unity.Networking.Transport.Samples
         void SendAvailableCharacters(NetworkConnection connection)
         {
             m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-            writer.WriteByte(0x01); // Tipo de mensaje: Lista de personajes disponibles
+            writer.WriteByte(0x00); // Tipo de mensaje: Lista de personajes disponibles
             writer.WriteInt(m_availableCharacters.Count);
 
             foreach (var character in m_availableCharacters)
@@ -147,7 +161,7 @@ namespace Unity.Networking.Transport.Samples
             byte messageType = stream.ReadByte();
             switch (messageType)
             {
-                case 0x02: // Selección de personaje
+                case 0x01: // Selección de personaje
                     string selectedCharacter = stream.ReadFixedString128().ToString();
                     if (!m_availableCharacters.Contains(selectedCharacter)) //Si ja esta seleccionat
                     {
@@ -157,36 +171,61 @@ namespace Unity.Networking.Transport.Samples
                     }
 
                     m_availableCharacters.Remove(selectedCharacter);
-                    selectedCharacters[connection] = selectedCharacter;
+
+                    var playerReference = new PlayerReference
+                    {
+                        character = selectedCharacter,
+                        transform = m_initialPlayerPositions[m_Connections.IndexOf(connection)]
+                    };
+                    m_playerReferences[connection] = playerReference;
+
+
                     Debug.Log($"Cliente seleccionó: {selectedCharacter}");
-                    CharacterSelectionResponse(connection, selectedCharacter);
+                    CharacterSelectionResponse(connection, m_playerReferences[connection]);
+
+
+                    //Set sprite in server scene
+                    m_playerReferences[connection].transform.gameObject.GetComponent<SpriteRenderer>().sprite = m_characters[GetCharacterIndexByName(selectedCharacter)].sprite;
 
                     //Notify other clients
                     foreach (var c in m_Connections)
                     {
-                        if (c != connection && c.IsCreated) SendAvailableCharacters(c);
+                        if (c != connection && c.IsCreated) SendCharacterInfo(c, m_playerReferences[connection]);
                     }
-                    
+
                     break;
-                
-                case 0x06: // Cliente envia la posicion nueva a la que se quiere mover
+
+                case 0x06: // Cliente envia la Vector2n nueva a la que se quiere mover
                     //characterPositions[connection] = initialPositions[]
                     break;
-                
+
             }
         }
 
-        void CharacterSelectionResponse(NetworkConnection connection, string character)
+        void CharacterSelectionResponse(NetworkConnection connection, PlayerReference player)
         {
             m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-            var messageType = (byte)(character == null ? 0x04 : 0x03);
+            var messageType = (byte)(player == null ? 0x04 : 0x03);
             writer.WriteByte(messageType);
 
-            if (messageType == 0x03) {
-                writer.WriteFixedString128(character);
-
+            if (messageType == 0x03)
+            {
+                writer.WriteFixedString128(player.character);
+                writer.WriteFloat(player.transform.position.x);
+                writer.WriteFloat(player.transform.position.y);
             }
 
+            m_Driver.EndSend(writer);
+        }
+
+        void SendCharacterInfo(NetworkConnection connection, PlayerReference player)
+        {
+            m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+            writer.WriteByte(0x02);
+
+            writer.WriteFixedString128(player.character);
+            writer.WriteFloat(player.transform.position.x);
+            writer.WriteFloat(player.transform.position.y);
             m_Driver.EndSend(writer);
         }
     }
