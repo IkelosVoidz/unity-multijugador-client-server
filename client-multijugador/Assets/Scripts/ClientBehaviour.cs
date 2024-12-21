@@ -14,6 +14,12 @@ public class PlayerReference
     public Vector2 position;
     public Vector2 initialPosition;
 }
+public class EnemyReference
+{
+    public int enemyId;
+    public Vector2 position;
+}
+
 
 
 public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
@@ -29,17 +35,20 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 
     [SerializeField] TMP_InputField serverIP;
     [SerializeField] TMP_InputField serverPort;
+    [SerializeField] private Transform enemyTransform;
 
     //public variables
 
     public List<string> m_avaliableCharacters = new List<string>();
 
     public List<PlayerReference> m_players = new List<PlayerReference>();
+    public List<EnemyReference> m_enemies = new List<EnemyReference>();
 
     //events
     public static event Action<PlayerReference> OnOtherCharacterSelected;
     public static event Action<string, Vector2> OnOtherCharacterMoved;
     public static event Action<Vector2> OnSelfMoved;
+    public static event Action<int, Vector2> OnEnemyMoved;
 
     void Start()
     {
@@ -179,6 +188,24 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 Vector2 newPosSelf2 = new Vector2(xSelf2, ySelf2);
                 OnSelfMoved?.Invoke(newPosSelf2);
                 break;
+            case 0x07:
+                int enemyId = stream.ReadInt();
+                float enemyX = stream.ReadFloat();
+                float enemyY = stream.ReadFloat();
+                Vector2 newPosEnemy = new Vector2(enemyX, enemyY);
+
+                var enemyReference = m_enemies.FirstOrDefault(enemy => enemy.enemyId == enemyId);
+
+                if (enemyReference != null)
+                {
+                    enemyReference.position = newPosEnemy;
+                    OnEnemyMoved?.Invoke(enemyId, newPosEnemy);
+                    return;
+                }
+
+                enemyReference = new EnemyReference {enemyId = enemyId, position = newPosEnemy};
+                m_enemies.Add(enemyReference);
+                break;
 
             default:
                 Debug.Log($"Unknown message type: {messageType}");
@@ -186,7 +213,10 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
         }
     }
 
-
+    private void UpdateEnemyPosition(Vector2 position)
+    {
+        enemyTransform.position = position;
+    }
     public bool IsCharacterAvailable(int index)
     {
         return m_avaliableCharacters.Contains("Personaje" + index);

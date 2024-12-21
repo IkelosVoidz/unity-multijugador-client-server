@@ -236,6 +236,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   serverIP: {fileID: 546304458}
   serverPort: {fileID: 865881171}
+  enemyTransform: {fileID: 0}
   m_avaliableCharacters: []
 --- !u!1 &546304456
 GameObject:

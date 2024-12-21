@@ -46,6 +46,11 @@ namespace Unity.Networking.Transport.Samples
         [SerializeField, ReadOnly] private List<string> m_availableCharacters;
         [SerializeField] List<Transform> m_initialPlayerPositions = new List<Transform>();
         [SerializeField] public float moveDistanceThreshold = 1f;
+
+        [SerializeField] private Transform enemyTransform; // Transform del enemigo
+        [SerializeField] private float enemySpeed = 2.0f;   // Velocidad del enemigo
+        private Vector2 enemyDirection = Vector2.right;    // Dirección inicial del movimiento
+
         Dictionary<NetworkConnection, PlayerReference> m_playerReferences = new Dictionary<NetworkConnection, PlayerReference>();
 
         public int GetCharacterIndexByName(string name) => m_characters.FindIndex(c => c.name == name);
@@ -141,8 +146,36 @@ namespace Unity.Networking.Transport.Samples
                     }
                 }
             }
+            UpdateEnemyPosition(); // Actualiza la posición del enemigo
+
+            // Envía la posición del enemigo a los clientes
+            foreach (var connection in m_Connections)
+            {
+                if (connection.IsCreated)
+                    SendEnemyPosition(connection);
+            }
         }
 
+        private void UpdateEnemyPosition()
+        {
+            Vector2 currentPosition = enemyTransform.position;
+            currentPosition += enemyDirection * enemySpeed * Time.deltaTime;
+
+            if (currentPosition.x > 10 || currentPosition.x < -10)
+                enemyDirection = -enemyDirection;
+
+            enemyTransform.position = currentPosition;
+        }
+
+        private void SendEnemyPosition(NetworkConnection connection)
+        {
+            m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+            writer.WriteByte(0x07); // Tipo de mensaje: posición del enemigo
+            writer.WriteInt(0);
+            writer.WriteFloat(enemyTransform.position.x);
+            writer.WriteFloat(enemyTransform.position.y);
+            m_Driver.EndSend(writer);
+        }
         void SendAvailableCharacters(NetworkConnection connection)
         {
             m_Driver.BeginSend(m_Pipeline, connection, out var writer);
