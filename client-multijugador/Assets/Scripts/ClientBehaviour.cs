@@ -18,6 +18,7 @@ public class EnemyReference
 {
     public int enemyId;
     public Vector2 position;
+    public float radius;
 }
 
 
@@ -205,6 +206,12 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 
                 enemyReference = new EnemyReference {enemyId = enemyId, position = newPosEnemy};
                 m_enemies.Add(enemyReference);
+                break;
+
+            case 0x08: // The server says there has been a collision between an enemy and character
+                string collidedCharacter = stream.ReadFixedString128().ToString();
+
+                Debug.Log($"Server reported collision: {collidedCharacter} with Enemy.");
                 break;
 
             default:

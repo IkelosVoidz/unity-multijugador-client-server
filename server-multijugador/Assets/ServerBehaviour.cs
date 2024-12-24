@@ -148,12 +148,51 @@ namespace Unity.Networking.Transport.Samples
             }
             UpdateEnemyPosition(); // Actualiza la posición del enemigo
 
+            CheckPlayerEnemyCollisions();
+
             // Envía la posición del enemigo a los clientes
             foreach (var connection in m_Connections)
             {
                 if (connection.IsCreated)
                     SendEnemyPosition(connection);
             }
+        }
+
+        private void CheckPlayerEnemyCollisions()
+        {
+            foreach (var player in m_playerReferences.Values)
+            {
+                Vector2 playerPosition = player.transform.position;
+                Vector2 enemyPosition = enemyTransform.position;
+
+                // Assuming a radius-based collision detection
+                float playerRadius = 0.5f; // Adjust as needed
+                float enemyRadius = 0.5f;  // Adjust as needed
+
+                if (Vector2.Distance(playerPosition, enemyPosition) < playerRadius + enemyRadius)
+                {
+                    HandlePlayerEnemyCollision(player);
+                }
+            }
+        }
+
+        private void HandlePlayerEnemyCollision(PlayerReference player)
+        {
+            Debug.Log($"Player {player.character} collided with the enemy!");
+
+            foreach (var connection in m_Connections)
+            {
+                if (connection.IsCreated)
+                    NotifyCollision(connection, player.character);
+            }
+        }
+
+        private void NotifyCollision(NetworkConnection connection, string character)
+        {
+            m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+            writer.WriteByte(0x08); // Message type for collision
+            writer.WriteFixedString128(character);
+            m_Driver.EndSend(writer);
         }
 
         private void UpdateEnemyPosition()
