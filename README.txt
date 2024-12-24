@@ -50,6 +50,18 @@ iii. La posició s’ha de simular al client i el servidor ha de corregirlo : fe
 que s'ha enviat desde el client i la nova posicio es major que aquest threshold es capa la distancia moguda a aquest threshold en la direccio 
 en la que anava el client
 
+QUARTA PART DEL TREBALL
+
+L'error de l'ultima part no ha estat solucionat encara 
+
+Sobre els punts d'aquesta part 
+
+1. Afegir enemic a l’escena
+2. Afegir el comportament de l’enemic
+3. Afegir la interacció entre l’enemic i els personatges
+
+Els tres fets, el tercer solament es fan Debug.Logs quan ocorren colisions, al treball es fara la lógica de perdre vida 
+
 
 
 
