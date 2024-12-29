@@ -14,7 +14,7 @@ public class PlayerReference
 
 }
 
-public class ServerBehaviour : MonoBehaviour
+public class ServerBehaviour : StaticSingleton<ServerBehaviour>
 {
     [SerializeField] private TMP_Text IP_Text;
 
@@ -145,9 +145,9 @@ public class ServerBehaviour : MonoBehaviour
         //TODO : finalmente llama a notifyColision desde el OnTriggerEnter, para el personaje correcto haces un tryGetComponent RemotePlayerBehaviour y si lo encuentra buscas el .character y se lo pasas al metodo*/
         //TODO : creas un prefab enemigo le metes sprite renderer collider con trigger y el script EnemyBehaviour y creas varios enemigos, asegurate de actualizar el array serializado
 
-        UpdateEnemyPosition(); // Actualiza la posición del enemigo //Todo : esto pa fuera
+        UpdateEnemyPosition(); // Actualiza la posición del enemigo //TODO : esto pa fuera
 
-        CheckPlayerEnemyCollisions(); //todo : esto pa fuera
+        CheckPlayerEnemyCollisions(); //TODO : esto pa fuera
 
         //TODO : esto puede estar dentro del primer for de las conexiones, dentro del isCreated , mas clean
         // Envía la posición del enemigo a los clientes
@@ -158,7 +158,7 @@ public class ServerBehaviour : MonoBehaviour
         }
     }
 
-    //Todo : este metodo da igual 
+    //TODO : este metodo da igual 
     private void CheckPlayerEnemyCollisions()
     {
         foreach (var player in m_playerReferences.Values)
