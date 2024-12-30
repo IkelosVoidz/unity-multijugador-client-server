@@ -18,10 +18,7 @@ public class EnemyReference
 {
     public int enemyId;
     public Vector2 position;
-    public float radius;
 }
-
-
 
 public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 {
@@ -81,7 +78,6 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
         {
             return;
         }
-
 
         DataStreamReader stream;
         NetworkEvent.Type cmd;
@@ -160,7 +156,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 
                 break;
 
-            case 0x03: // El personaje ha ido escogido correctamente
+            case 0x03: // El personaje ha sido escogido correctamente
 
                 m_characterChosen = stream.ReadFixedString128().ToString();
                 float xSelf = stream.ReadFloat();
@@ -189,7 +185,10 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 Vector2 newPosSelf2 = new Vector2(xSelf2, ySelf2);
                 OnSelfMoved?.Invoke(newPosSelf2);
                 break;
-            case 0x07:
+
+            case 0x08: //The server informs that a player has thrown an ability
+                break;
+            case 0x09: //The server sends the position of an enemy
                 int enemyId = stream.ReadInt();
                 float enemyX = stream.ReadFloat();
                 float enemyY = stream.ReadFloat();
@@ -204,14 +203,17 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                     return;
                 }
 
-                enemyReference = new EnemyReference {enemyId = enemyId, position = newPosEnemy};
+                enemyReference = new EnemyReference { enemyId = enemyId, position = newPosEnemy };
                 m_enemies.Add(enemyReference);
                 break;
+            case 0x10: //The server says that an enemy has recieved damage, it sends the id of the enemy
 
-            case 0x08: // The server says there has been a collision between an enemy and character
+            case 0x11: // The server says a player has recieved damage
                 string collidedCharacter = stream.ReadFixedString128().ToString();
 
                 Debug.Log($"Server reported collision: {collidedCharacter} with Enemy.");
+                break;
+            case 0x12:// The server says a character has crossed the line
                 break;
 
             default:

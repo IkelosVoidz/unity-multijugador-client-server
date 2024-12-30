@@ -45,8 +45,9 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     public int GetCharacterIndexByName(string name) => m_characters.FindIndex(c => c.name == name);
 
 
-    private void Awake()
+    private new void Awake()
     {
+        base.Awake();
         m_availableCharacters = new List<string>(m_characters.Select(c => c.name));
     }
 
@@ -149,11 +150,11 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
 
         CheckPlayerEnemyCollisions(); //TODO : esto pa fuera
 
-        //TODO : esto puede estar dentro del primer for de las conexiones, dentro del isCreated , mas clean
         // Envía la posición del enemigo a los clientes
         foreach (var connection in m_Connections)
         {
             if (connection.IsCreated)
+                //TODO : esto puede estar dentro del primer for de las conexiones, dentro del isCreated , mas clean
                 SendEnemyPosition(connection);
         }
     }
@@ -190,19 +191,19 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     }
 
 
-    //TODO : llama a este metodo desde EnemyBehaviour
-    private void NotifyCollision(NetworkConnection connection, string character)
+    //TODO : llama a este metodo desde EnemyBehaviour, no hace falta pasarle la conexion porque ya recorreras todas las conexiones
+    public void NotifyCollision(NetworkConnection connection, string character)
     {
-        //para todas las conexiones 
+        //TODO : recorrer todas las conexiones 
         m_Driver.BeginSend(m_Pipeline, connection, out var writer);
         writer.WriteByte(0x011); // Message type for collision
         writer.WriteFixedString128(character);
         m_Driver.EndSend(writer);
     }
 
+    //TODO : Esto en EnemyBehaviour, en su update
     private void UpdateEnemyPosition()
     {
-        //TODO : hacer por cada enemigo en el array
         Vector2 currentPosition = enemyTransform.position;
         currentPosition += enemyDirection * enemySpeed * Time.deltaTime;
 
@@ -212,6 +213,7 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         enemyTransform.position = currentPosition;
     }
 
+    //TODO : Esto tendras que llamarlo por cada enemigo en el array de enemigos si se ha movido suficiente , si no, early return del bucle
     private void SendEnemyPosition(NetworkConnection connection)
     {
         m_Driver.BeginSend(m_Pipeline, connection, out var writer);
