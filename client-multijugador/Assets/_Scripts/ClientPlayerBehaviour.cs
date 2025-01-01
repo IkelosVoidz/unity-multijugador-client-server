@@ -8,6 +8,8 @@ public class ClientPlayerBehaviour : PlayerBehaviour
     [SerializeField] private float updateInterval = 0.2f; // Time in seconds between updates
     private float updateTimer;
 
+    public float dir = 0.0f;
+
     private void Start()
     {
         updateTimer = 0f; // Initialize to 0 to ensure the first update occurs immediately if needed
@@ -17,6 +19,12 @@ public class ClientPlayerBehaviour : PlayerBehaviour
     {
         // Decrement timer but clamp it to prevent it from going negative
         updateTimer = Mathf.Max(0f, updateTimer - Time.deltaTime);
+
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            ability.Activate(dir);
+        }
     }
 
     public bool ShouldUpdatePosition(Vector2 lastSentPosition, Vector2 currentPosition)

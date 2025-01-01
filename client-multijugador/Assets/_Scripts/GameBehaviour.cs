@@ -5,7 +5,6 @@ using UnityEngine;
 
 public class GameBehaviour : MonoBehaviour
 {
-
     private void OnEnable() { ClientBehaviour.OnOtherCharacterSelected += SpawnPlayer; }
 
 
@@ -13,6 +12,9 @@ public class GameBehaviour : MonoBehaviour
 
     [SerializeField] private GameObject clientPlayerPrefab;
     [SerializeField] private GameObject serverPlayerPrefab;
+
+
+
 
 
     void Start()

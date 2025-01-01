@@ -14,14 +14,14 @@ public class EnemyController : MonoBehaviour
 
     void Start()
     {
-        foreach (var enemy in ClientBehaviour.Instance.m_enemies) {
-            GameObject createdEnemy =Instantiate(_enemyPrefab,enemy.position,Quaternion.identity);
+        foreach (var enemy in ClientBehaviour.Instance.m_enemies)
+        {
+            GameObject createdEnemy = Instantiate(_enemyPrefab, enemy.position, Quaternion.identity);
             m_enemyReferences[enemy.enemyId] = createdEnemy;
         }
     }
     private void UpdateEnemyPosition(int enemyId, Vector2 position)
     {
         m_enemyReferences[enemyId].transform.position = position;
-
     }
 }

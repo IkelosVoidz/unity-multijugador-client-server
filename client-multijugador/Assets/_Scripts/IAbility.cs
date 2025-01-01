@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerBehaviour : MonoBehaviour
+public interface IAbility
 {
-    public string characterName;
+    void Activate(float direction); //-1 left, 1 right
 }

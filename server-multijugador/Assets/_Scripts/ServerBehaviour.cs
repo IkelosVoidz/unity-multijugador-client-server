@@ -7,11 +7,14 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Linq;
+
+[Serializable]
 public class PlayerReference
 {
     public string character;
     public Transform transform;
 
+    public SimulatedPlayerBehaviour behaviour;
 }
 
 public class ServerBehaviour : StaticSingleton<ServerBehaviour>
@@ -31,10 +34,10 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         };
 
     [SerializeField, ReadOnly] private List<string> m_availableCharacters;
-    [SerializeField] List<Transform> m_initialPlayerPositions = new List<Transform>();
+    [SerializeField] List<PlayerReference> m_initialPlayerReferences = new List<PlayerReference>();
     [SerializeField] public float moveDistanceThreshold = 1f;
 
-    //TODO : mover a EnemyBehaviour
+    //TODO : mover a EnemyBehaviour y aqui hacer un array de enemigos (mas info abajo en el bloque de TO DOS )
 
     [SerializeField] private Transform enemyTransform; // Transform del enemigo
     [SerializeField] private float enemySpeed = 2.0f;   // Velocidad del enemigo
@@ -159,6 +162,152 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         }
     }
 
+    void ProcessClientMessages(NetworkConnection connection, DataStreamReader stream)
+    {
+        byte messageType = stream.ReadByte();
+        switch (messageType)
+        {
+            case 0x01: // Selección de personaje
+                string selectedCharacter = stream.ReadFixedString128().ToString();
+                if (!m_availableCharacters.Contains(selectedCharacter)) //Si ja esta seleccionat
+                {
+                    Debug.Log("Cliente seleccionó un personaje ya seleccionado");
+                    CharacterSelectionResponse(connection, null);
+                    return;
+                }
+
+                m_availableCharacters.Remove(selectedCharacter);
+
+                var playerReference = new PlayerReference
+                {
+                    character = selectedCharacter,
+                    transform = m_initialPlayerReferences[m_Connections.IndexOf(connection)].transform,
+                    behaviour = m_initialPlayerReferences[m_Connections.IndexOf(connection)].behaviour,
+                };
+                m_playerReferences[connection] = playerReference;
+
+
+                Debug.Log($"Cliente seleccionó: {selectedCharacter}");
+                CharacterSelectionResponse(connection, m_playerReferences[connection]);
+
+
+                //Setup character in server scene
+                m_playerReferences[connection].behaviour.SetupCharacter(m_characters[GetCharacterIndexByName(selectedCharacter)]);
+
+                //Notify other clients
+                foreach (var c in m_Connections)
+                {
+                    if (c != connection && c.IsCreated) SendCharacterInfo(c, m_playerReferences[connection]);
+                }
+
+                break;
+
+            case 0x06:
+                var x = stream.ReadFloat();
+                var y = stream.ReadFloat();
+
+                Vector2 newPos = new Vector2(x, y);
+                Vector2 lastPos = m_playerReferences[connection].transform.position;
+
+
+                if (Vector2.Distance(newPos, lastPos) > moveDistanceThreshold)
+                {
+                    Vector2 directionVec = (newPos - lastPos).normalized;
+                    newPos = lastPos + directionVec * moveDistanceThreshold; //Capem el moviment al max threshold 
+
+                    SendCorrectPositionToClients(connection, newPos);
+                }
+
+
+                var index = m_Connections.IndexOf(connection);
+                Debug.Log($"Client {index} moved {m_playerReferences[connection].character} to ({newPos.x}, {newPos.y})");
+
+                m_playerReferences[connection].transform.SetPositionAndRotation(newPos, m_playerReferences[connection].transform.rotation);
+
+                //Notify other clients
+                foreach (var c in m_Connections)
+                {
+                    if (c != connection && c.IsCreated) SendCharacterInfo(c, m_playerReferences[connection]);
+                }
+
+                break;
+            case 0x07: //client ha fet habilitat
+                var direction = stream.ReadFloat(); //-1 left 1 right
+                m_playerReferences[connection].behaviour.ActivateAbility(direction);
+
+                //Notify other clients
+                foreach (var c in m_Connections)
+                {
+                    if (c != connection && c.IsCreated) AbilityActivationResponse(c, m_playerReferences[connection].character, direction);
+                }
+
+                break;
+            default:
+                Debug.Log("Unknown message type.");
+                break;
+        }
+    }
+
+    void SendAvailableCharacters(NetworkConnection connection) //0x00
+    {
+        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+        writer.WriteByte(0x00); // Tipo de mensaje: Lista de personajes disponibles
+        writer.WriteInt(m_availableCharacters.Count);
+
+        foreach (var character in m_availableCharacters)
+        {
+            writer.WriteFixedString128(character);
+        }
+        m_Driver.EndSend(writer);
+        Debug.Log("Lista de personajes enviados.");
+    }
+
+    void SendCharacterInfo(NetworkConnection connection, PlayerReference player) //0x02
+    {
+        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+        writer.WriteByte(0x02);
+
+        writer.WriteFixedString128(player.character);
+        writer.WriteFloat(player.transform.position.x);
+        writer.WriteFloat(player.transform.position.y);
+        m_Driver.EndSend(writer);
+    }
+
+    void CharacterSelectionResponse(NetworkConnection connection, PlayerReference player) //0x03 & 0x04
+    {
+        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+        var messageType = (byte)(player == null ? 0x04 : 0x03);
+        writer.WriteByte(messageType);
+
+        if (messageType == 0x03)
+        {
+            writer.WriteFixedString128(player.character);
+            writer.WriteFloat(player.transform.position.x);
+            writer.WriteFloat(player.transform.position.y);
+        }
+
+        m_Driver.EndSend(writer);
+    }
+
+    void SendCorrectPositionToClients(NetworkConnection connection, Vector2 correctPosition) //0x05
+    {
+        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+        writer.WriteByte(0x05);
+
+        writer.WriteFloat(correctPosition.x);
+        writer.WriteFloat(correctPosition.y);
+        m_Driver.EndSend(writer);
+    }
+
+    void AbilityActivationResponse(NetworkConnection connection, string character, float direction) //0x08
+    {
+        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+        writer.WriteByte(0x08);
+        writer.WriteFixedString128(character);
+        writer.WriteFloat(direction);
+        m_Driver.EndSend(writer);
+    }
+
     //TODO : este metodo da igual 
     private void CheckPlayerEnemyCollisions()
     {
@@ -190,9 +339,19 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         }
     }
 
+    //TODO : Esto tendras que llamarlo por cada enemigo en el array de enemigos si se ha movido suficiente , si no, early return del bucle
+    private void SendEnemyPosition(NetworkConnection connection) //0x09
+    {
+        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+        writer.WriteByte(0x09); // Tipo de mensaje: posición del enemigo
+        writer.WriteInt(0);
+        writer.WriteFloat(enemyTransform.position.x);
+        writer.WriteFloat(enemyTransform.position.y);
+        m_Driver.EndSend(writer);
+    }
 
     //TODO : llama a este metodo desde EnemyBehaviour, no hace falta pasarle la conexion porque ya recorreras todas las conexiones
-    public void NotifyCollision(NetworkConnection connection, string character)
+    public void NotifyCollision(NetworkConnection connection, string character) //0x011
     {
         //TODO : recorrer todas las conexiones 
         m_Driver.BeginSend(m_Pipeline, connection, out var writer);
@@ -213,143 +372,4 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         enemyTransform.position = currentPosition;
     }
 
-    //TODO : Esto tendras que llamarlo por cada enemigo en el array de enemigos si se ha movido suficiente , si no, early return del bucle
-    private void SendEnemyPosition(NetworkConnection connection)
-    {
-        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-        writer.WriteByte(0x09); // Tipo de mensaje: posición del enemigo
-        writer.WriteInt(0);
-        writer.WriteFloat(enemyTransform.position.x);
-        writer.WriteFloat(enemyTransform.position.y);
-        m_Driver.EndSend(writer);
-    }
-    void SendAvailableCharacters(NetworkConnection connection)
-    {
-        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-        writer.WriteByte(0x00); // Tipo de mensaje: Lista de personajes disponibles
-        writer.WriteInt(m_availableCharacters.Count);
-
-        foreach (var character in m_availableCharacters)
-        {
-            writer.WriteFixedString128(character);
-        }
-        m_Driver.EndSend(writer);
-        Debug.Log("Lista de personajes enviados.");
-    }
-
-    void ProcessClientMessages(NetworkConnection connection, DataStreamReader stream)
-    {
-        byte messageType = stream.ReadByte();
-        switch (messageType)
-        {
-            case 0x01: // Selección de personaje
-                string selectedCharacter = stream.ReadFixedString128().ToString();
-                if (!m_availableCharacters.Contains(selectedCharacter)) //Si ja esta seleccionat
-                {
-                    Debug.Log("Cliente seleccionó un personaje ya seleccionado");
-                    CharacterSelectionResponse(connection, null);
-                    return;
-                }
-
-                m_availableCharacters.Remove(selectedCharacter);
-
-                var playerReference = new PlayerReference
-                {
-                    character = selectedCharacter,
-                    transform = m_initialPlayerPositions[m_Connections.IndexOf(connection)]
-                };
-                m_playerReferences[connection] = playerReference;
-
-
-                Debug.Log($"Cliente seleccionó: {selectedCharacter}");
-                CharacterSelectionResponse(connection, m_playerReferences[connection]);
-
-
-                //Setup character in server scene
-
-
-                m_playerReferences[connection].transform.gameObject.GetComponent<SimulatedPlayerBehaviour>().SetupCharacter(m_characters[GetCharacterIndexByName(selectedCharacter)]);
-
-                //Notify other clients
-                foreach (var c in m_Connections)
-                {
-                    if (c != connection && c.IsCreated) SendCharacterInfo(c, m_playerReferences[connection]);
-                }
-
-                break;
-
-            case 0x06:
-                var x = stream.ReadFloat();
-                var y = stream.ReadFloat();
-
-                Vector2 newPos = new Vector2(x, y);
-                Vector2 lastPos = m_playerReferences[connection].transform.position;
-
-
-                if (Vector2.Distance(newPos, lastPos) > moveDistanceThreshold)
-                {
-                    Vector2 direction = (newPos - lastPos).normalized;
-                    newPos = lastPos + direction * moveDistanceThreshold; //Capem el moviment al max threshold 
-
-                    SendCorrectPositionToClients(connection, newPos);
-                }
-
-
-                var index = m_Connections.IndexOf(connection);
-                Debug.Log($"Client {index} moved {m_playerReferences[connection].character} to ({newPos.x}, {newPos.y})");
-
-                m_playerReferences[connection].transform.SetPositionAndRotation(newPos, m_playerReferences[connection].transform.rotation);
-
-                //Notify other clients
-                foreach (var c in m_Connections)
-                {
-                    if (c != connection && c.IsCreated) SendCharacterInfo(c, m_playerReferences[connection]);
-                }
-
-                break;
-            case 0x07: //client ha fet habilitat
-                break;
-            default:
-                Debug.Log("Unknown message type.");
-                break;
-        }
-    }
-
-    void CharacterSelectionResponse(NetworkConnection connection, PlayerReference player)
-    {
-        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-        var messageType = (byte)(player == null ? 0x04 : 0x03);
-        writer.WriteByte(messageType);
-
-        if (messageType == 0x03)
-        {
-            writer.WriteFixedString128(player.character);
-            writer.WriteFloat(player.transform.position.x);
-            writer.WriteFloat(player.transform.position.y);
-        }
-
-        m_Driver.EndSend(writer);
-    }
-
-    void SendCharacterInfo(NetworkConnection connection, PlayerReference player)
-    {
-        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-        writer.WriteByte(0x02);
-
-        writer.WriteFixedString128(player.character);
-        writer.WriteFloat(player.transform.position.x);
-        writer.WriteFloat(player.transform.position.y);
-        m_Driver.EndSend(writer);
-    }
-
-
-    void SendCorrectPositionToClients(NetworkConnection connection, Vector2 correctPosition)
-    {
-        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-        writer.WriteByte(0x05);
-
-        writer.WriteFloat(correctPosition.x);
-        writer.WriteFloat(correctPosition.y);
-        m_Driver.EndSend(writer);
-    }
 }
