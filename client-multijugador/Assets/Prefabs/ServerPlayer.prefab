@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 8084358308609085327}
   - component: {fileID: 5501526470674598748}
   - component: {fileID: 2509476136656785735}
+  - component: {fileID: 3908398988192277486}
   m_Layer: 0
   m_Name: ServerPlayer
   m_TagString: Untagged
@@ -45,6 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 483eced77f7ce024ca0ce8760927d051, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  lerpSpeed: 5
 --- !u!114 &2509476136656785735
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -58,7 +60,32 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   characterVisuals:
-  - {fileID: 3364460734702116826, guid: 689ff0448916ddc44a7e10d7a267e388, type: 3}
-  - {fileID: 5878024897258899168, guid: 4e561a346235f944c86ad737087feee2, type: 3}
-  - {fileID: 7364490647437639462, guid: a67b93c4159361b4398ae9a4e41a8515, type: 3}
-  - {fileID: 692910052393814939, guid: 6741793888cc06347b422e7e543eee30, type: 3}
+  - {fileID: 8636589060530111801, guid: 689ff0448916ddc44a7e10d7a267e388, type: 3}
+  - {fileID: 535451377501775705, guid: 4e561a346235f944c86ad737087feee2, type: 3}
+--- !u!50 &3908398988192277486
+Rigidbody2D:
+  serializedVersion: 4
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6035748846542634797}
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDrag: 0
+  m_AngularDrag: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 4

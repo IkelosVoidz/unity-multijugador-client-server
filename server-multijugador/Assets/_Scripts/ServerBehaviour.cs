@@ -29,8 +29,6 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         {
             new () { name = "Personaje1" },
             new () { name = "Personaje2" },
-            new () { name = "Personaje3" },
-            new () { name = "Personaje4" }
         };
 
     [SerializeField, ReadOnly] private List<string> m_availableCharacters;

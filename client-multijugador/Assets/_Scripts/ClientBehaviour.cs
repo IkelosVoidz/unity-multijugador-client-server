@@ -52,7 +52,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
     public static event Action<PlayerReference> OnOtherCharacterSelected;
     public static event Action<string, Vector2> OnOtherCharacterMoved;
 
-    public static event Action OnOtherCharacterAbilityActivated;
+    public static event Action<float> OnOtherCharacterAbilityActivated;
     public static event Action<Vector2> OnSelfMoved;
     public static event Action<int, Vector2> OnEnemyMoved;
 
@@ -115,6 +115,11 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
         return null;
     }
 
+    public Ability GetAbilityFromCharacterName(string characterName)
+    {
+        var abilityUserReference = m_players.FirstOrDefault(player => player.character.name == characterName);
+        return abilityUserReference.character.ability;
+    }
 
     void PayloadDeconstructor(DataStreamReader stream)
     {
@@ -193,12 +198,13 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 
             case 0x08: //The server informs that a player has thrown an ability
                 string abilityUser = stream.ReadFixedString128().ToString();
-                var abilityUserReference = m_players.FirstOrDefault(player => player.character.name == abilityUser);
-                var abilityUsed = abilityUserReference.character.ability;
+                Ability abilityUsed = GetAbilityFromCharacterName(abilityUser);
 
                 float direction = stream.ReadFloat();
 
                 Debug.Log($"Server reported character: {abilityUser} has used ability {abilityUsed} with direction {direction}");
+
+                OnOtherCharacterAbilityActivated?.Invoke(direction);
 
                 break;
             case 0x09: //The server sends the position of an enemy

@@ -15,8 +15,6 @@ public class PlayerMovement : MonoBehaviour
     private float dir = 1.0f;
     private bool isGrounded = false;
 
-
-
     private void OnEnable() { ClientBehaviour.OnSelfMoved += FixPosition; }
 
     private void OnDisable() { ClientBehaviour.OnSelfMoved -= FixPosition; }

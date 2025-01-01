@@ -15,15 +15,15 @@ public class ClientPlayerBehaviour : PlayerBehaviour
         updateTimer = 0f; // Initialize to 0 to ensure the first update occurs immediately if needed
     }
 
-    private void Update()
+    private new void Update()
     {
+        base.Update();
         // Decrement timer but clamp it to prevent it from going negative
         updateTimer = Mathf.Max(0f, updateTimer - Time.deltaTime);
 
-
         if (Input.GetMouseButtonDown(0))
         {
-            ability.Activate(dir);
+            ActivateAbility(dir);
             ClientBehaviour.Instance.SendAbility(dir);
         }
     }
@@ -56,5 +56,11 @@ public class ClientPlayerBehaviour : PlayerBehaviour
         {
             ClientBehaviour.Instance.UpdatePlayerPosition(characterName, position);
         }
+    }
+
+    public override void TakeDamage()
+    {
+        base.TakeDamage();
+        //TODO : health behaviour
     }
 }

@@ -770,16 +770,10 @@ MonoBehaviour:
   m_characters:
   - name: Personaje1
     sprite: {fileID: 21300000, guid: 4ed61cd5193741343bb3e82482695a91, type: 3}
-    ability: 0
+    ability: 1
   - name: Personaje2
     sprite: {fileID: 21300000, guid: 955f5571fdc3f2c468f09f8d1168cfaf, type: 3}
-    ability: 1
-  - name: Personaje3
-    sprite: {fileID: 21300000, guid: e9f872d2d6d5ff245a7b0af451fdb6ef, type: 3}
     ability: 0
-  - name: Personaje4
-    sprite: {fileID: 21300000, guid: c15fa26560cfc3f46b8ef605dd45cd24, type: 3}
-    ability: 1
   m_availableCharacters: []
   m_initialPlayerReferences:
   - character: 

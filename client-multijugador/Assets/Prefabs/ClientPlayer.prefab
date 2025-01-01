@@ -156,7 +156,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   characterVisuals:
-  - {fileID: 3364460734702116826, guid: 689ff0448916ddc44a7e10d7a267e388, type: 3}
-  - {fileID: 5878024897258899168, guid: 4e561a346235f944c86ad737087feee2, type: 3}
-  - {fileID: 7364490647437639462, guid: a67b93c4159361b4398ae9a4e41a8515, type: 3}
-  - {fileID: 692910052393814939, guid: 6741793888cc06347b422e7e543eee30, type: 3}
+  - {fileID: 8636589060530111801, guid: 689ff0448916ddc44a7e10d7a267e388, type: 3}
+  - {fileID: 535451377501775705, guid: 4e561a346235f944c86ad737087feee2, type: 3}
