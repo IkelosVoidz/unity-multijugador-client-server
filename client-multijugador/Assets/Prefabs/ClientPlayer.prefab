@@ -123,6 +123,10 @@ MonoBehaviour:
   rb: {fileID: 6717586836170825529}
   playerBehaviour: {fileID: 3440060732276280857}
   moveSpeed: 5
+  jumpForce: 7
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
 --- !u!114 &3440060732276280857
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -138,6 +142,7 @@ MonoBehaviour:
   characterName: 
   positionThreshold: 0.5
   updateInterval: 0.3
+  dir: 0
 --- !u!114 &508350263004546186
 MonoBehaviour:
   m_ObjectHideFlags: 0

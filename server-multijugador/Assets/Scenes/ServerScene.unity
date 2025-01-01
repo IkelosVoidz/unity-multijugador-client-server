@@ -784,10 +784,10 @@ MonoBehaviour:
   m_initialPlayerReferences:
   - character: 
     transform: {fileID: 213687491}
-    _behaviour: {fileID: 275092746802481147}
+    behaviour: {fileID: 275092746802481147}
   - character: 
     transform: {fileID: 381834023}
-    _behaviour: {fileID: 381834024}
+    behaviour: {fileID: 381834024}
   moveDistanceThreshold: 1
   enemyTransform: {fileID: 1990747626}
   enemySpeed: 2

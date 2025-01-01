@@ -47,7 +47,6 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
 
     public int GetCharacterIndexByName(string name) => m_characters.FindIndex(c => c.name == name);
 
-
     private new void Awake()
     {
         base.Awake();
@@ -257,6 +256,11 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         foreach (var character in m_availableCharacters)
         {
             writer.WriteFixedString128(character);
+
+            //enviem tambe l'abilitat, aixi el servidor es l'unic que te la veritat de quin personatge te cada abilitat
+            int characterIndex = GetCharacterIndexByName(character);
+            int ability = (int)m_characters[characterIndex].ability;
+            writer.WriteInt(ability);
         }
         m_Driver.EndSend(writer);
         Debug.Log("Lista de personajes enviados.");

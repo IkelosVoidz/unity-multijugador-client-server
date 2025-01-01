@@ -23,6 +23,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        playerBehaviour.dir = dir; //no me hableis de esto, me da mucha pereza hacerlo bien
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
@@ -41,7 +42,7 @@ public class PlayerMovement : MonoBehaviour
         if (moveX != 0) dir = moveX;
 
         GetComponentInChildren<SpriteRenderer>().flipX = dir < 0;
-        // playerBehaviour.UpdateServerPosition(rb.position);
+        playerBehaviour.UpdateServerPosition(rb.position);
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
