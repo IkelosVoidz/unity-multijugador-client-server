@@ -24,6 +24,7 @@ public class ClientPlayerBehaviour : PlayerBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             ability.Activate(dir);
+            ClientBehaviour.Instance.SendAbility(dir);
         }
     }
 

@@ -23,6 +23,11 @@ public class ServerPlayerBehaviour : PlayerBehaviour
         targetPosition = position;
     }
 
+    public void ActivateAbility(float dir)
+    {
+        ability?.Activate(dir);
+    }
+
     private void Update()
     {
         currentPosition = Vector2.Lerp(currentPosition, targetPosition, Time.deltaTime * lerpSpeed);

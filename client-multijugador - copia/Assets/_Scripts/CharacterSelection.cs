@@ -25,7 +25,7 @@ public class CharacterSelection : MonoBehaviour
 
     public void UpdateAvaliableCharacters(PlayerReference unavailableCharacter)
     {
-        int characterIndex = ClientBehaviour.Instance.GetCharacterIndexByName(unavailableCharacter.character);
+        int characterIndex = ClientBehaviour.Instance.GetCharacterIndexByName(unavailableCharacter.character.name);
         characterButtons[characterIndex].interactable = false;
     }
 }

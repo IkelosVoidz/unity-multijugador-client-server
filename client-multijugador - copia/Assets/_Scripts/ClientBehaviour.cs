@@ -9,12 +9,23 @@ using System.Linq;
 
 public class PlayerReference
 {
-    public string character;
+    public Character character;
     public bool spawned;
     public Vector2 position;
     public Vector2 initialPosition;
+
+}
+public class EnemyReference
+{
+    public int enemyId;
+    public Vector2 position;
 }
 
+public class Character
+{
+    public string name;
+    public Ability ability;
+}
 
 public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 {
@@ -32,14 +43,18 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 
     //public variables
 
-    public List<string> m_avaliableCharacters = new List<string>();
+    public List<Character> m_avaliableCharacters = new List<Character>();
 
     public List<PlayerReference> m_players = new List<PlayerReference>();
+    public List<EnemyReference> m_enemies = new List<EnemyReference>();
 
     //events
     public static event Action<PlayerReference> OnOtherCharacterSelected;
     public static event Action<string, Vector2> OnOtherCharacterMoved;
+
+    public static event Action OnOtherCharacterAbilityActivated;
     public static event Action<Vector2> OnSelfMoved;
+    public static event Action<int, Vector2> OnEnemyMoved;
 
     void Start()
     {
@@ -72,7 +87,6 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
             return;
         }
 
-
         DataStreamReader stream;
         NetworkEvent.Type cmd;
         while ((cmd = m_Connection.PopEvent(m_Driver, out stream, out var pipeline)) != NetworkEvent.Type.Empty)
@@ -94,22 +108,13 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
         }
     }
 
-    public void ChooseCharacter(int indexPersonatge)
-    {
-        var characterName = "Personaje" + indexPersonatge;
-
-        m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
-        writer.WriteByte(0x01);
-        writer.WriteFixedString128(characterName);
-        m_Driver.EndSend(writer);
-    }
-
     public string GetChosenCharacter()
     {
         if (m_isCharacterChosenConfirmed) return m_characterChosen;
 
         return null;
     }
+
 
     void PayloadDeconstructor(DataStreamReader stream)
     {
@@ -125,9 +130,10 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 for (int i = 0; i < nAvaliableCharacters; i++)
                 {
                     string personatge = stream.ReadFixedString128().ToString();
-                    m_avaliableCharacters.Add(personatge);
+                    Ability ability = (Ability)stream.ReadInt();
+                    m_avaliableCharacters.Add(new Character { name = personatge, ability = ability });
                 }
-                Debug.Log("Personatges disponibles: " + string.Join(", ", m_avaliableCharacters));
+                Debug.Log("Personatges disponibles: " + string.Join(", ", m_avaliableCharacters.Select(c => $"{c.name} ({c.ability})")));
                 break;
             case 0x02: //Informacio de un player de una altre connexio
                 string characterName = stream.ReadFixedString128().ToString();
@@ -135,7 +141,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 float y = stream.ReadFloat();
                 Vector2 newPos = new Vector2(x, y);
 
-                var playerReference = m_players.FirstOrDefault(player => player.character == characterName);
+                var playerReference = m_players.FirstOrDefault(player => player.character.name == characterName);
 
                 if (playerReference != null)
                 {
@@ -144,13 +150,15 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                     return;
                 }
 
-                playerReference = new PlayerReference { character = characterName, initialPosition = newPos, position = newPos, spawned = false };
+                Character otherSelectedCharacter = m_avaliableCharacters.FirstOrDefault(c => c.name == characterName);
+
+                playerReference = new PlayerReference { character = otherSelectedCharacter, initialPosition = newPos, position = newPos, spawned = false };
                 m_players.Add(playerReference);
                 OnOtherCharacterSelected?.Invoke(playerReference);
 
                 break;
 
-            case 0x03: // El personaje ha ido escogido correctamente
+            case 0x03: // El personaje ha sido escogido correctamente
 
                 m_characterChosen = stream.ReadFixedString128().ToString();
                 float xSelf = stream.ReadFloat();
@@ -159,7 +167,10 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 m_isCharacterChosenConfirmed = true;
                 Debug.Log("El personatge s'ha escollit correctament");
 
-                m_players.Add(new PlayerReference { character = m_characterChosen, initialPosition = newPosSelf, position = newPosSelf, spawned = false });
+                Character selectedCharacter = m_avaliableCharacters.FirstOrDefault(c => c.name == m_characterChosen);
+
+
+                m_players.Add(new PlayerReference { character = selectedCharacter, initialPosition = newPosSelf, position = newPosSelf, spawned = false });
                 SceneManager.LoadScene("GameScene");
 
                 break;
@@ -180,16 +191,83 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 OnSelfMoved?.Invoke(newPosSelf2);
                 break;
 
+            case 0x08: //The server informs that a player has thrown an ability
+                string abilityUser = stream.ReadFixedString128().ToString();
+                var abilityUserReference = m_players.FirstOrDefault(player => player.character.name == abilityUser);
+                var abilityUsed = abilityUserReference.character.ability;
+
+                float direction = stream.ReadFloat();
+
+                Debug.Log($"Server reported character: {abilityUser} has used ability {abilityUsed} with direction {direction}");
+
+                break;
+            case 0x09: //The server sends the position of an enemy
+                int enemyId = stream.ReadInt();
+                float enemyX = stream.ReadFloat();
+                float enemyY = stream.ReadFloat();
+                Vector2 newPosEnemy = new Vector2(enemyX, enemyY);
+
+                var enemyReference = m_enemies.FirstOrDefault(enemy => enemy.enemyId == enemyId);
+
+                if (enemyReference != null)
+                {
+                    enemyReference.position = newPosEnemy;
+                    OnEnemyMoved?.Invoke(enemyId, newPosEnemy);
+                    return;
+                }
+
+                enemyReference = new EnemyReference { enemyId = enemyId, position = newPosEnemy };
+                m_enemies.Add(enemyReference);
+                break;
+            case 0x10: //The server says that an enemy has recieved damage, it sends the id of the enemy
+
+            case 0x11: // The server says a player has recieved damage
+                string collidedCharacter = stream.ReadFixedString128().ToString();
+
+                Debug.Log($"Server reported collision: {collidedCharacter} with Enemy.");
+                break;
+            case 0x12:// The server says a character has crossed the line i cant fight this time now i can feel the liiiine shine on my faaace did i diisappoiint you , will they still let me oover, if ii cross the liiine
+                break;
+
             default:
                 Debug.Log($"Unknown message type: {messageType}");
                 break;
         }
     }
 
+    public void ChooseCharacter(int indexPersonatge) //0x01
+    {
+        var characterName = "Personaje" + indexPersonatge;
+
+        m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
+        writer.WriteByte(0x01);
+        writer.WriteFixedString128(characterName);
+        m_Driver.EndSend(writer);
+    }
+
+    public void UpdatePlayerPosition(string characterName, Vector2 position) //0x06
+    {
+        int index = m_players.FindIndex(p => p.character.name == characterName);
+        m_players[index].position = position;
+
+        m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
+        writer.WriteByte(0x06);
+        writer.WriteFloat(position.x);
+        writer.WriteFloat(position.y);
+        m_Driver.EndSend(writer);
+    }
+
+    public void SendAbility(float direction) //0x08
+    {
+        m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
+        writer.WriteByte(0x07);
+        writer.WriteFloat(direction);
+        m_Driver.EndSend(writer);
+    }
 
     public bool IsCharacterAvailable(int index)
     {
-        return m_avaliableCharacters.Contains("Personaje" + index);
+        return m_avaliableCharacters.Any(p => p.name == "Personaje" + index);
     }
 
     public int GetCharacterIndexByName(string characterName)
@@ -213,19 +291,9 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 
     public Vector2 GetLastSentPosition(string characterName)
     {
-        return m_players[m_players.FindIndex(p => p.character == characterName)].position;
+        return m_players[m_players.FindIndex(p => p.character.name == characterName)].position;
     }
 
 
-    public void UpdatePlayerPosition(string characterName, Vector2 position)
-    {
-        int index = m_players.FindIndex(p => p.character == characterName);
-        m_players[index].position = position;
 
-        m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
-        writer.WriteByte(0x06);
-        writer.WriteFloat(position.x);
-        writer.WriteFloat(position.y);
-        m_Driver.EndSend(writer);
-    }
 }

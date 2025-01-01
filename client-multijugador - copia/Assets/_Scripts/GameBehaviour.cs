@@ -5,7 +5,6 @@ using UnityEngine;
 
 public class GameBehaviour : MonoBehaviour
 {
-
     private void OnEnable() { ClientBehaviour.OnOtherCharacterSelected += SpawnPlayer; }
 
 
@@ -13,6 +12,9 @@ public class GameBehaviour : MonoBehaviour
 
     [SerializeField] private GameObject clientPlayerPrefab;
     [SerializeField] private GameObject serverPlayerPrefab;
+
+
+
 
 
     void Start()
@@ -34,13 +36,13 @@ public class GameBehaviour : MonoBehaviour
             : playerReference.initialPosition;
 
         var player = Instantiate(
-            playerReference.character == ClientBehaviour.Instance.GetChosenCharacter()
+            playerReference.character.name == ClientBehaviour.Instance.GetChosenCharacter()
                 ? clientPlayerPrefab
                 : serverPlayerPrefab,
             spawnPosition, Quaternion.identity);
 
-        player.GetComponent<LoadCharacterVisuals>().loadCharacterVisuals(playerReference.character);
-        player.GetComponent<PlayerBehaviour>().characterName = playerReference.character;
+        player.GetComponent<LoadCharacterVisuals>().LoadVisuals(playerReference.character.name);
+        player.GetComponent<PlayerBehaviour>().SetupCharacter(playerReference);
 
         playerReference.position = playerReference.initialPosition;
         playerReference.spawned = true;

@@ -51,6 +51,8 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
     //events
     public static event Action<PlayerReference> OnOtherCharacterSelected;
     public static event Action<string, Vector2> OnOtherCharacterMoved;
+
+    public static event Action OnOtherCharacterAbilityActivated;
     public static event Action<Vector2> OnSelfMoved;
     public static event Action<int, Vector2> OnEnemyMoved;
 
@@ -106,22 +108,13 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
         }
     }
 
-    public void ChooseCharacter(int indexPersonatge)
-    {
-        var characterName = "Personaje" + indexPersonatge;
-
-        m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
-        writer.WriteByte(0x01);
-        writer.WriteFixedString128(characterName);
-        m_Driver.EndSend(writer);
-    }
-
     public string GetChosenCharacter()
     {
         if (m_isCharacterChosenConfirmed) return m_characterChosen;
 
         return null;
     }
+
 
     void PayloadDeconstructor(DataStreamReader stream)
     {
@@ -199,6 +192,14 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 break;
 
             case 0x08: //The server informs that a player has thrown an ability
+                string abilityUser = stream.ReadFixedString128().ToString();
+                var abilityUserReference = m_players.FirstOrDefault(player => player.character.name == abilityUser);
+                var abilityUsed = abilityUserReference.character.ability;
+
+                float direction = stream.ReadFloat();
+
+                Debug.Log($"Server reported character: {abilityUser} has used ability {abilityUsed} with direction {direction}");
+
                 break;
             case 0x09: //The server sends the position of an enemy
                 int enemyId = stream.ReadInt();
@@ -225,7 +226,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 
                 Debug.Log($"Server reported collision: {collidedCharacter} with Enemy.");
                 break;
-            case 0x12:// The server says a character has crossed the line
+            case 0x12:// The server says a character has crossed the line i cant fight this time now i can feel the liiiine shine on my faaace did i diisappoiint you , will they still let me oover, if ii cross the liiine
                 break;
 
             default:
@@ -233,6 +234,37 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 break;
         }
     }
+
+    public void ChooseCharacter(int indexPersonatge) //0x01
+    {
+        var characterName = "Personaje" + indexPersonatge;
+
+        m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
+        writer.WriteByte(0x01);
+        writer.WriteFixedString128(characterName);
+        m_Driver.EndSend(writer);
+    }
+
+    public void UpdatePlayerPosition(string characterName, Vector2 position) //0x06
+    {
+        int index = m_players.FindIndex(p => p.character.name == characterName);
+        m_players[index].position = position;
+
+        m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
+        writer.WriteByte(0x06);
+        writer.WriteFloat(position.x);
+        writer.WriteFloat(position.y);
+        m_Driver.EndSend(writer);
+    }
+
+    public void SendAbility(float direction) //0x08
+    {
+        m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
+        writer.WriteByte(0x07);
+        writer.WriteFloat(direction);
+        m_Driver.EndSend(writer);
+    }
+
     public bool IsCharacterAvailable(int index)
     {
         return m_avaliableCharacters.Any(p => p.name == "Personaje" + index);
@@ -263,15 +295,5 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
     }
 
 
-    public void UpdatePlayerPosition(string characterName, Vector2 position)
-    {
-        int index = m_players.FindIndex(p => p.character.name == characterName);
-        m_players[index].position = position;
 
-        m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
-        writer.WriteByte(0x06);
-        writer.WriteFloat(position.x);
-        writer.WriteFloat(position.y);
-        m_Driver.EndSend(writer);
-    }
 }
