@@ -769,10 +769,10 @@ MonoBehaviour:
   IP_Text: {fileID: 2096439059}
   m_characters:
   - name: Personaje1
-    sprite: {fileID: 21300000, guid: 4ed61cd5193741343bb3e82482695a91, type: 3}
+    sprite: {fileID: -794217038, guid: 8c87a1912c10fd647ac5d1ec551e30ae, type: 3}
     ability: 1
   - name: Personaje2
-    sprite: {fileID: 21300000, guid: 955f5571fdc3f2c468f09f8d1168cfaf, type: 3}
+    sprite: {fileID: -530050793, guid: ff0dc4395df99d74a8fffce98cc910f1, type: 3}
     ability: 0
   m_availableCharacters: []
   m_initialPlayerReferences:
@@ -1088,7 +1088,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1990747626}
   - component: {fileID: 1990747625}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Enemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1136,7 +1136,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
+  m_Sprite: {fileID: -1530329320, guid: 0e3dd9f7c7d348744b5603f48e1e0a11, type: 3}
   m_Color: {r: 1, g: 0, b: 0, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1307,6 +1307,10 @@ PrefabInstance:
     - target: {fileID: 11483834048397499, guid: e8864cc33de353b44b6419346cc6f395, type: 3}
       propertyPath: m_Name
       value: Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 5788838072149781123, guid: e8864cc33de353b44b6419346cc6f395, type: 3}
+      propertyPath: _character.name
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 8097048296931469920, guid: e8864cc33de353b44b6419346cc6f395, type: 3}
       propertyPath: m_LocalPosition.x

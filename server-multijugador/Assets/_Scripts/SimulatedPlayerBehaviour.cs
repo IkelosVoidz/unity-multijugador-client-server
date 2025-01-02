@@ -20,10 +20,13 @@ public class Character
 
 public class SimulatedPlayerBehaviour : MonoBehaviour
 {
-    public Character _character;
+    [SerializeField] private Character _character;
     [SerializeField] private SpriteRenderer spriteRenderer;
 
     private IAbility ability;
+
+    private bool _abilityActive = false;
+    private float direction = 0.0f;
 
     public void SetupCharacter(Character c)
     {
@@ -34,6 +37,26 @@ public class SimulatedPlayerBehaviour : MonoBehaviour
 
     public void ActivateAbility(float direction)
     {
-        ability.Activate(direction);
+        _abilityActive = true;
+        Invoke(nameof(DeactivateAbility), 1.0f);
+        this.direction = direction;
+        ability.Activate(direction, this);
+    }
+
+    private void DeactivateAbility()
+    {
+        _abilityActive = false;
+    }
+
+    private void OnDrawGizmos()
+    {
+        if ((ability is MeleeAbility) && _abilityActive)
+        {
+            Vector2 boxCenter = (Vector2)transform.position + new Vector2(direction, 0);
+            Vector2 boxSize = new Vector2(1, 1);
+
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireCube(boxCenter, boxSize);
+        }
     }
 }

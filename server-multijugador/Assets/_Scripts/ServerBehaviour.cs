@@ -215,9 +215,8 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
                     SendCorrectPositionToClients(connection, newPos);
                 }
 
-
-                var index = m_Connections.IndexOf(connection);
-                Debug.Log($"Client {index} moved {m_playerReferences[connection].character} to ({newPos.x}, {newPos.y})");
+                // var index = m_Connections.IndexOf(connection);
+                // Debug.Log($"Client {index} moved {m_playerReferences[connection].character} to ({newPos.x}, {newPos.y})");
 
                 m_playerReferences[connection].transform.SetPositionAndRotation(newPos, m_playerReferences[connection].transform.rotation);
 
@@ -342,8 +341,9 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     }
 
     //TODO : Esto tendras que llamarlo por cada enemigo en el array de enemigos si se ha movido suficiente , si no, early return del bucle
-    private void SendEnemyPosition(NetworkConnection connection) //0x09
+    public void SendEnemyPosition(NetworkConnection connection) //0x09
     {
+        //TODO : recorrer todas las conexiones
         m_Driver.BeginSend(m_Pipeline, connection, out var writer);
         writer.WriteByte(0x09); // Tipo de mensaje: posición del enemigo
         writer.WriteInt(0);
@@ -352,16 +352,48 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         m_Driver.EndSend(writer);
     }
 
+
+    public void NotifyEnemyHit(int enemyIndex) //0x10
+    {
+        foreach (var connection in m_Connections)
+        {
+            m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+            writer.WriteByte(0x10); // Message type for enemy hit
+            writer.WriteInt(enemyIndex);
+            m_Driver.EndSend(writer);
+        }
+    }
     //TODO : llama a este metodo desde EnemyBehaviour, no hace falta pasarle la conexion porque ya recorreras todas las conexiones
-    public void NotifyCollision(NetworkConnection connection, string character) //0x011
+    public void NotifyCollision(NetworkConnection connection, string character) //0x11
     {
         //TODO : recorrer todas las conexiones 
         m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-        writer.WriteByte(0x011); // Message type for collision
+        writer.WriteByte(0x11); // Message type for collision
         writer.WriteFixedString128(character);
         m_Driver.EndSend(writer);
     }
 
+
+    public void NotifyProjectileHit(int projectileIndex) //0x12
+    {
+        foreach (var connection in m_Connections)
+        {
+            m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+            writer.WriteByte(0x12); // Message type for projectile hit
+            writer.WriteInt(projectileIndex);
+            m_Driver.EndSend(writer);
+        }
+    }
+
+    public void NotifyPlayerFinish()//0x13
+    {
+        foreach (var connection in m_Connections)
+        {
+            m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+            writer.WriteByte(0x13); // Message type for player finish
+            m_Driver.EndSend(writer);
+        }
+    }
     //TODO : Esto en EnemyBehaviour, en su update
     private void UpdateEnemyPosition()
     {
