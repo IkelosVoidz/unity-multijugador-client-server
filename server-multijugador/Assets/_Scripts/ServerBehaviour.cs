@@ -35,7 +35,7 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     [SerializeField] List<PlayerReference> m_initialPlayerReferences = new List<PlayerReference>();
     [SerializeField] public float moveDistanceThreshold = 1f;
 
-    //TODO : mover a EnemyBehaviour y aqui hacer un array de enemigos (mas info abajo en el bloque de TO DOS )
+    //TODO : mover a EnemyBehaviour y aqui hacer una lista de enemigos (mas info abajo en el bloque de TO DOS )
 
     [SerializeField] private Transform enemyTransform; // Transform del enemigo
     [SerializeField] private float enemySpeed = 2.0f;   // Velocidad del enemigo
@@ -94,6 +94,25 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         }
     }
 
+    private void HandleClientDisconnect(NetworkConnection connection)
+    {
+        if (m_playerReferences.TryGetValue(connection, out var playerReference))
+        {
+            m_playerReferences.Remove(connection);
+            m_availableCharacters.Add(playerReference.character);
+
+            foreach (var conn in m_Connections)
+            {
+                if (conn != connection && conn.IsCreated)
+                {
+                    //NotifyPlayerDisconnect(conn, playerReference.character);
+                }
+            }
+
+            Debug.Log($"Player {playerReference.character} disconnected.");
+        }
+    }
+
     void Update()
     {
         m_Driver.ScheduleUpdate().Complete();
@@ -130,7 +149,7 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
                     }
                     else if (cmd == NetworkEvent.Type.Disconnect)
                     {
-                        Debug.Log($"Client {i} disconnected from the server.");
+                        HandleClientDisconnect(m_Connections[i]);
                         m_Connections[i] = default;
                         break;
                     }
@@ -343,6 +362,7 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     //TODO : Esto tendras que llamarlo por cada enemigo en el array de enemigos si se ha movido suficiente , si no, early return del bucle
     public void SendEnemyPosition(NetworkConnection connection) //0x09
     {
+
         //TODO : recorrer todas las conexiones
         m_Driver.BeginSend(m_Pipeline, connection, out var writer);
         writer.WriteByte(0x09); // Tipo de mensaje: posición del enemigo
@@ -353,12 +373,15 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     }
 
 
-    public void NotifyEnemyHit(int enemyIndex) //0x10
+    public void NotifyEnemyHit(GameObject enemy) //0x10
     {
         foreach (var connection in m_Connections)
         {
             m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-            writer.WriteByte(0x10); // Message type for enemy hit
+            writer.WriteByte(0x10);
+            //TODO : Chequear en que indice esta el enemigo int enemyIndex = enemyList.IndexOf(enemy);
+            int enemyIndex = 0;
+
             writer.WriteInt(enemyIndex);
             m_Driver.EndSend(writer);
         }
@@ -374,12 +397,16 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     }
 
 
-    public void NotifyProjectileHit(int projectileIndex) //0x12
+    public void NotifyProjectileHit(GameObject projectile) //0x12
     {
         foreach (var connection in m_Connections)
         {
             m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-            writer.WriteByte(0x12); // Message type for projectile hit
+            writer.WriteByte(0x12);
+
+            //TODO : Chequear en que indice esta el proyectil int projectileIndex = projectileList.IndexOf(projectile);
+            int projectileIndex = 0;
+
             writer.WriteInt(projectileIndex);
             m_Driver.EndSend(writer);
         }
@@ -394,6 +421,7 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
             m_Driver.EndSend(writer);
         }
     }
+
     //TODO : Esto en EnemyBehaviour, en su update
     private void UpdateEnemyPosition()
     {
