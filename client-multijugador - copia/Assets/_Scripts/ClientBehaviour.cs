@@ -58,7 +58,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
     public static event Action<PlayerReference> OnOtherCharacterSelected;
     public static event Action<string, Vector2, Vector2> OnOtherCharacterMoved;
 
-    public static event Action<float> OnOtherCharacterAbilityActivated;
+    public static event Action<Vector2, float> OnOtherCharacterAbilityActivated;
     public static event Action<Vector2> OnSelfMoved;
     public static event Action<int, Vector2> OnEnemyMoved;
 
@@ -209,11 +209,14 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 string abilityUser = stream.ReadFixedString128().ToString();
                 Ability abilityUsed = GetAbilityFromCharacterName(abilityUser);
 
+                float xPos = stream.ReadFloat();
+                float yPos = stream.ReadFloat();
                 float direction = stream.ReadFloat();
+
 
                 Debug.Log($"Server reported character: {abilityUser} has used ability {abilityUsed} with direction {direction}");
 
-                OnOtherCharacterAbilityActivated?.Invoke(direction);
+                OnOtherCharacterAbilityActivated?.Invoke(new Vector2(xPos, yPos), direction);
 
                 break;
             case 0x09: //The server sends the position of an enemy
@@ -281,10 +284,12 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
         m_Driver.EndSend(writer);
     }
 
-    public void SendAbility(float direction) //0x08
+    public void SendAbility(Vector2 position, float direction) //0x08
     {
         m_Driver.BeginSend(m_Pipeline, m_Connection, out var writer);
         writer.WriteByte(0x07);
+        writer.WriteFloat(position.x);
+        writer.WriteFloat(position.y);
         writer.WriteFloat(direction);
         m_Driver.EndSend(writer);
     }
@@ -318,14 +323,16 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
         return m_players[m_players.FindIndex(p => p.character.name == characterName)].position;
     }
 
+    public bool CanSpawnProjectile()
+    {
+        return m_canSpawnProjectile;
+    }
 
     public void SpawnProjectile(Vector2 position, float direction)
     {
-        if (!m_canSpawnProjectile) return;
-
-        GameObject projectile = Instantiate(m_projectilePrefab, position, Quaternion.identity);
-        projectile.GetComponent<Rigidbody2D>().AddForce(new Vector2(direction, 0) * 5, ForceMode2D.Impulse);
-        if (direction > 0) projectile.transform.localScale = new Vector3(-1, 1, 1);
+        m_projectileRef = Instantiate(m_projectilePrefab, position, Quaternion.identity);
+        m_projectileRef.GetComponent<Rigidbody2D>().AddForce(new Vector2(direction, 0) * 15, ForceMode2D.Impulse);
+        if (direction < 0) m_projectileRef.GetComponent<SpriteRenderer>().flipX = true;
 
         m_canSpawnProjectile = false;
     }

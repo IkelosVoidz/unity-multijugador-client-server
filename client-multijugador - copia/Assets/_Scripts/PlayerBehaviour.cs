@@ -27,10 +27,9 @@ public class PlayerBehaviour : MonoBehaviour
         ability = AbilityFactory.CreateAbility(reference.character.ability);
     }
 
-    public virtual void ActivateAbility(float dir)
+    public virtual void ActivateAbility(Vector2 position, float dir)
     {
-        animator.SetTrigger("Attack");
-        ability?.Activate(dir, this);
+        ability?.Activate(position, dir, this, animator);
     }
 
     public virtual void TakeDamage()

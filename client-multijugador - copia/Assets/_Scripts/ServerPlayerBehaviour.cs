@@ -39,10 +39,11 @@ public class ServerPlayerBehaviour : PlayerBehaviour
         targetVelocity = velocity;
     }
 
-    public override void ActivateAbility(float dir)
+    public override void ActivateAbility(Vector2 position, float dir)
     {
-        base.ActivateAbility(dir);
+        base.ActivateAbility(position, dir);
         this.dir = dir;
+        targetPosition = position;
     }
 
 
