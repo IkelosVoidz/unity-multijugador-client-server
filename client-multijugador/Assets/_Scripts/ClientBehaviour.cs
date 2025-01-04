@@ -330,9 +330,9 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 
     public void SpawnProjectile(Vector2 position, float direction)
     {
-        GameObject projectile = Instantiate(m_projectilePrefab, position, Quaternion.identity);
-        projectile.GetComponent<Rigidbody2D>().AddForce(new Vector2(direction, 0) * 15, ForceMode2D.Impulse);
-        if (direction < 0) projectile.GetComponent<SpriteRenderer>().flipX = true;
+        m_projectileRef = Instantiate(m_projectilePrefab, position, Quaternion.identity);
+        m_projectileRef.GetComponent<Rigidbody2D>().AddForce(new Vector2(direction, 0) * 15, ForceMode2D.Impulse);
+        if (direction < 0) m_projectileRef.GetComponent<SpriteRenderer>().flipX = true;
 
         m_canSpawnProjectile = false;
     }
