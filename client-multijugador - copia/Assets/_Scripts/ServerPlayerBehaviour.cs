@@ -6,13 +6,17 @@ public class ServerPlayerBehaviour : PlayerBehaviour
 {
     private Vector2 currentVelocity;
     private Vector2 targetPosition;
+    private Vector2 targetVelocity;
+
+
+
     [SerializeField] private float lerpSpeed = 5f;
 
     private float dir = 1.0f;
 
     private void Start()
     {
-        currentVelocity = transform.position;
+        targetVelocity = rb.velocity;
         targetPosition = transform.position;
     }
 
@@ -28,10 +32,11 @@ public class ServerPlayerBehaviour : PlayerBehaviour
 
     }
 
-    private void UpdatePositionFromServer(string character, Vector2 position)
+    private void UpdatePositionFromServer(string character, Vector2 position, Vector2 velocity)
     {
         if (characterName != character) return;
         targetPosition = position;
+        targetVelocity = velocity;
     }
 
     public override void ActivateAbility(float dir)
@@ -43,17 +48,13 @@ public class ServerPlayerBehaviour : PlayerBehaviour
 
     private new void Update()
     {
-        Vector2 direction = (targetPosition - (Vector2)transform.position).normalized;
-        dir = direction.x;
+        Vector2 currentPosition = transform.position;
 
-        sr.flipX = dir < 0f;
+        if (targetVelocity.x != 0) dir = targetVelocity.x;
 
-        Vector2 desiredVelocity = direction * 5;
-        currentVelocity = Vector2.Lerp(currentVelocity, desiredVelocity, Time.deltaTime * lerpSpeed);
-        rb.velocity = currentVelocity;
-
-        base.Update();
-        // currentPosition = Vector2.Lerp(currentPosition, targetPosition, Time.deltaTime * lerpSpeed);
-        // transform.position = currentPosition;
+        sr.flipX = dir < 0.0f;
+        animator.SetFloat("Speed", targetVelocity.magnitude);
+        currentPosition = Vector2.Lerp(currentPosition, targetPosition, Time.deltaTime * lerpSpeed);
+        transform.position = currentPosition;
     }
 }

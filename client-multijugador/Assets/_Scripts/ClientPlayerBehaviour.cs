@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class ClientPlayerBehaviour : PlayerBehaviour
 {
-    [SerializeField] private float positionThreshold = 0.1f; // Minimum distance to trigger an update instantly
-    [SerializeField] private float updateInterval = 0.2f; // Time in seconds between updates
+    [SerializeField] private float positionThreshold = 0.05f; // Minimum distance to trigger an update instantly
+    [SerializeField] private float updateInterval = 0.1f; // Time in seconds between updates
     private float updateTimer;
 
     public float dir = 1.0f;
@@ -24,8 +24,7 @@ public class ClientPlayerBehaviour : PlayerBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            ActivateAbility(dir);
-            ClientBehaviour.Instance.SendAbility(dir);
+            ActivateAbility(transform.position, dir);
         }
     }
 
@@ -41,7 +40,7 @@ public class ClientPlayerBehaviour : PlayerBehaviour
         // 1. Position has changed substantially OR
         // 2. Timer has elapsed AND
         // 3. Position is not identical to the last sent position
-        if ((positionChanged || timerElapsed) && currentPosition != lastSentPosition)
+        if (timerElapsed && currentPosition != lastSentPosition)
         {
             // Reset the timer
             updateTimer = updateInterval;
@@ -55,7 +54,7 @@ public class ClientPlayerBehaviour : PlayerBehaviour
         var lastSentPosition = ClientBehaviour.Instance.GetLastSentPosition(characterName);
         if (ShouldUpdatePosition(lastSentPosition, position))
         {
-            ClientBehaviour.Instance.UpdatePlayerPosition(characterName, position);
+            ClientBehaviour.Instance.UpdatePlayerPosition(characterName, position, rb.velocity);
         }
     }
 

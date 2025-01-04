@@ -35,12 +35,12 @@ public class SimulatedPlayerBehaviour : MonoBehaviour
         ability = AbilityFactory.CreateAbility(c.ability);
     }
 
-    public void ActivateAbility(float direction)
+    public void ActivateAbility(Vector2 position, float direction)
     {
         _abilityActive = true;
         Invoke(nameof(DeactivateAbility), 1.0f);
         this.direction = direction;
-        ability.Activate(direction, this);
+        ability.Activate(position, direction, this);
     }
 
     private void DeactivateAbility()

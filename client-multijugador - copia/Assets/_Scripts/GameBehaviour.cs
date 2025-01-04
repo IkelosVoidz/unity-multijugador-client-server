@@ -13,7 +13,7 @@ public class GameBehaviour : MonoBehaviour
     [SerializeField] private GameObject clientPlayerPrefab;
     [SerializeField] private GameObject serverPlayerPrefab;
 
-
+    [SerializeField] private GameObject arrowPrefab;
 
 
 
@@ -48,5 +48,10 @@ public class GameBehaviour : MonoBehaviour
         playerReference.spawned = true;
 
         ClientBehaviour.Instance.AddOrUpdatePlayerReference(playerReference);
+    }
+
+    public void SpawnArrow(Vector2 position)
+    {
+        Instantiate(arrowPrefab, Vector2.zero, Quaternion.identity);
     }
 }

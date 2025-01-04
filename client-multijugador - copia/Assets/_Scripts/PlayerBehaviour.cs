@@ -30,7 +30,7 @@ public class PlayerBehaviour : MonoBehaviour
     public virtual void ActivateAbility(float dir)
     {
         animator.SetTrigger("Attack");
-        ability?.Activate(dir);
+        ability?.Activate(dir, this);
     }
 
     public virtual void TakeDamage()

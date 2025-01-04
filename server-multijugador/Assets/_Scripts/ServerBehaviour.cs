@@ -13,7 +13,7 @@ public class PlayerReference
 {
     public string character;
     public Transform transform;
-
+    public Vector2 lastRecievedVelocity;
     public SimulatedPlayerBehaviour behaviour;
 }
 
@@ -36,6 +36,9 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     [SerializeField] public float moveDistanceThreshold = 1f;
 
     //TODO : mover a EnemyBehaviour y aqui hacer una lista de enemigos (mas info abajo en el bloque de TO DOS )
+
+
+    [SerializeField] GameObject m_projectilePrefab;
 
     [SerializeField] private Transform enemyTransform; // Transform del enemigo
     [SerializeField] private float enemySpeed = 2.0f;   // Velocidad del enemigo
@@ -199,6 +202,7 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
                     character = selectedCharacter,
                     transform = m_initialPlayerReferences[m_Connections.IndexOf(connection)].transform,
                     behaviour = m_initialPlayerReferences[m_Connections.IndexOf(connection)].behaviour,
+                    lastRecievedVelocity = Vector2.zero
                 };
                 m_playerReferences[connection] = playerReference;
 
@@ -221,8 +225,11 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
             case 0x06:
                 var x = stream.ReadFloat();
                 var y = stream.ReadFloat();
+                var vx = stream.ReadFloat();
+                var vy = stream.ReadFloat();
 
                 Vector2 newPos = new Vector2(x, y);
+                Vector2 newVel = new Vector2(vx, vy);
                 Vector2 lastPos = m_playerReferences[connection].transform.position;
 
 
@@ -234,10 +241,8 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
                     SendCorrectPositionToClients(connection, newPos);
                 }
 
-                // var index = m_Connections.IndexOf(connection);
-                // Debug.Log($"Client {index} moved {m_playerReferences[connection].character} to ({newPos.x}, {newPos.y})");
-
                 m_playerReferences[connection].transform.SetPositionAndRotation(newPos, m_playerReferences[connection].transform.rotation);
+                m_playerReferences[connection].lastRecievedVelocity = newVel;
 
                 //Notify other clients
                 foreach (var c in m_Connections)
@@ -247,13 +252,15 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
 
                 break;
             case 0x07: //client ha fet habilitat
+                var xPos = stream.ReadFloat();
+                var yPos = stream.ReadFloat();
                 var direction = stream.ReadFloat(); //-1 left 1 right
-                m_playerReferences[connection].behaviour.ActivateAbility(direction);
+                m_playerReferences[connection].behaviour.ActivateAbility(new Vector2(xPos, yPos), direction);
 
                 //Notify other clients
                 foreach (var c in m_Connections)
                 {
-                    if (c != connection && c.IsCreated) AbilityActivationResponse(c, m_playerReferences[connection].character, direction);
+                    if (c != connection && c.IsCreated) AbilityActivationResponse(c, m_playerReferences[connection].character, new Vector2(xPos, yPos), direction);
                 }
 
                 break;
@@ -290,6 +297,8 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         writer.WriteFixedString128(player.character);
         writer.WriteFloat(player.transform.position.x);
         writer.WriteFloat(player.transform.position.y);
+        writer.WriteFloat(player.lastRecievedVelocity.x);
+        writer.WriteFloat(player.lastRecievedVelocity.y);
         m_Driver.EndSend(writer);
     }
 
@@ -319,11 +328,13 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         m_Driver.EndSend(writer);
     }
 
-    void AbilityActivationResponse(NetworkConnection connection, string character, float direction) //0x08
+    void AbilityActivationResponse(NetworkConnection connection, string character, Vector2 position, float direction) //0x08
     {
         m_Driver.BeginSend(m_Pipeline, connection, out var writer);
         writer.WriteByte(0x08);
         writer.WriteFixedString128(character);
+        writer.WriteFloat(position.x);
+        writer.WriteFloat(position.y);
         writer.WriteFloat(direction);
         m_Driver.EndSend(writer);
     }
@@ -397,17 +408,12 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     }
 
 
-    public void NotifyProjectileHit(GameObject projectile) //0x12
+    public void NotifyProjectileDeletion() //0x12
     {
         foreach (var connection in m_Connections)
         {
             m_Driver.BeginSend(m_Pipeline, connection, out var writer);
             writer.WriteByte(0x12);
-
-            //TODO : Chequear en que indice esta el proyectil int projectileIndex = projectileList.IndexOf(projectile);
-            int projectileIndex = 0;
-
-            writer.WriteInt(projectileIndex);
             m_Driver.EndSend(writer);
         }
     }
@@ -434,4 +440,11 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         enemyTransform.position = currentPosition;
     }
 
+
+    public void CreateProjectile(Vector2 position, float direction)
+    {
+        GameObject projectile = Instantiate(m_projectilePrefab, position, Quaternion.identity);
+        projectile.GetComponent<Rigidbody2D>().AddForce(new Vector2(direction, 0) * 15, ForceMode2D.Impulse);
+        if (direction < 0) projectile.GetComponent<SpriteRenderer>().flipX = true;
+    }
 }

@@ -4,5 +4,5 @@ using UnityEngine;
 
 public interface IAbility
 {
-    void Activate(float direction, MonoBehaviour owner); //-1 left, 1 right
+    void Activate(Vector2 position, float direction, MonoBehaviour owner); //-1 left, 1 right
 }

@@ -10,5 +10,5 @@ public enum Ability
 
 public interface IAbility
 {
-    void Activate(float direction); //-1 left, 1 right
+    void Activate(float direction, MonoBehaviour owner); //-1 left, 1 right
 }
