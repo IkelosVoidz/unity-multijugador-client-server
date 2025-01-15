@@ -219,7 +219,7 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
                 {
                     if (c != connection && c.IsCreated) SendCharacterInfo(c, m_playerReferences[connection]);
                 }
-
+                CheckAndStartGame();
                 break;
 
             case 0x06:
@@ -446,5 +446,27 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         GameObject projectile = Instantiate(m_projectilePrefab, position, Quaternion.identity);
         projectile.GetComponent<Rigidbody2D>().AddForce(new Vector2(direction, 0) * 15, ForceMode2D.Impulse);
         if (direction < 0) projectile.GetComponent<SpriteRenderer>().flipX = true;
+    }
+
+    void CheckAndStartGame()
+    {
+        // Verifica si hay al menos 2 jugadores conectados
+        if (m_playerReferences.Count >= 2)
+        {
+            foreach (var connection in m_Connections)
+            {
+                if (connection.IsCreated)
+                {
+                    StartGame(connection);
+                }
+            }
+        }
+    }
+    void StartGame(NetworkConnection connection)
+    {
+        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+        writer.WriteByte(0x14); // Código de mensaje para iniciar el juego
+        m_Driver.EndSend(writer);
+        Debug.Log("Mensaje enviado para iniciar el juego.");
     }
 }
