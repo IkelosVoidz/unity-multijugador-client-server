@@ -100,7 +100,6 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
             if (cmd == NetworkEvent.Type.Connect)
             {
                 Debug.Log("Conexión establecida con el servidor.");
-                SceneManager.LoadScene("CharacterSelection");
             }
             else if (cmd == NetworkEvent.Type.Data)
             {
@@ -185,7 +184,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 
 
                 m_players.Add(new PlayerReference { character = selectedCharacter, initialPosition = newPosSelf, position = newPosSelf, spawned = false });
-                //SceneManager.LoadScene("GameScene");
+                SceneManager.LoadScene("GameScene");
 
                 break;
 
@@ -253,11 +252,14 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
             case 0x13:// The server says a character has crossed the line i cant fight this time now i can feel the liiiine shine on my faaace did i diisappoiint you , will they still let me oover, if ii cross the liiine
                 Debug.Log($"Server reported a character has crossed the line.");
                 break;
-            case 0x14: // El servidor indica que todos los jugadores están conectados y el juego puede comenzar
-                Debug.Log("Todos los jugadores están conectados. Cargando escena del juego...");
-                SceneManager.LoadScene("GameScene");
+            case 0x14: // Escena de espera
+                Debug.Log("Esperando a otros jugadores...");
+                SceneManager.LoadScene("WaitScene");
                 break;
-
+            case 0x15: // Inicio de selección de personajes
+                Debug.Log("Ambos jugadores conectados. Comenzando selección de personajes.");
+                SceneManager.LoadScene("CharacterSelection");
+                break;
             default:
                 Debug.Log($"Unknown message type: {messageType}");
                 break;
