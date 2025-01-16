@@ -14,4 +14,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/WaitScene.unity
     guid: d8c0b63f1556b7a43902c471cd1dafd8
+  - enabled: 1
+    path: Assets/Scenes/WinScene.unity
+    guid: 0ed104b3a0f31b044bdf35b11a4e9371
+  - enabled: 1
+    path: Assets/Scenes/LoseScene.unity
+    guid: 239d99ffaad7fc640a7c0b49d58ac918
   m_configObjects: {}

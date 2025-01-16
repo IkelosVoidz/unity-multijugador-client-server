@@ -7,6 +7,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Linq;
+using UnityEditor.MemoryProfiler;
 
 [Serializable]
 public class PlayerReference
@@ -292,8 +293,8 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
                 {
                     if (c != connection && c.IsCreated) AbilityActivationResponse(c, m_playerReferences[connection].character, new Vector2(xPos, yPos), direction);
                 }
-
                 break;
+
             default:
                 Debug.Log("Unknown message type.");
                 break;

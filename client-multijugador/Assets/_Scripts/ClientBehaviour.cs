@@ -251,6 +251,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 break;
             case 0x13:// The server says a character has crossed the line i cant fight this time now i can feel the liiiine shine on my faaace did i diisappoiint you , will they still let me oover, if ii cross the liiine
                 Debug.Log($"Server reported a character has crossed the line.");
+                SceneManager.LoadScene("WinScene");
                 break;
             case 0x14: // Escena de espera
                 Debug.Log("Esperando a otros jugadores...");
