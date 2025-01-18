@@ -5,6 +5,7 @@ public class RangedAbility : IAbility
 {
     public void Activate(Vector2 position, float direction, MonoBehaviour owner)
     {
+        Debug.Log("Ranged ability direction = " + ((direction == 1) ? "Right" : "Left"));
         ServerBehaviour.Instance.CreateProjectile(position, direction);
     }
 }

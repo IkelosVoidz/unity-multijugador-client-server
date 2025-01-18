@@ -8109,7 +8109,7 @@ MonoBehaviour:
   m_CaretColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
   m_CustomCaretColor: 0
   m_SelectionColor: {r: 0.65882355, g: 0.80784315, b: 1, a: 0.7529412}
-  m_Text: 192.168.1.139
+  m_Text: 192.168.56.1
   m_CaretBlinkRate: 0.85
   m_CaretWidth: 1
   m_ReadOnly: 0
@@ -8731,7 +8731,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "192.168.1.139\u200B"
+  m_text: "192.168.56.1\u200B"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5d63b9ef5e4e22848845345fe983cb58, type: 2}
   m_sharedMaterial: {fileID: 224291810416917747, guid: 5d63b9ef5e4e22848845345fe983cb58, type: 2}
