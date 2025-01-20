@@ -27,6 +27,7 @@ public class SimulatedPlayerBehaviour : MonoBehaviour
 
     private bool _abilityActive = false;
     private float direction = 0.0f;
+    private int lives = 3;
 
     public void SetupCharacter(Character c)
     {
@@ -35,12 +36,26 @@ public class SimulatedPlayerBehaviour : MonoBehaviour
         ability = AbilityFactory.CreateAbility(c.ability);
     }
 
+    public Character GetCharacter()
+    {
+        return _character;
+    }
+
     public void ActivateAbility(Vector2 position, float direction)
     {
         _abilityActive = true;
         Invoke(nameof(DeactivateAbility), 1.0f);
         this.direction = direction;
         ability.Activate(position, direction, this);
+    }
+
+    public void LoseLife()
+    {
+        lives--;
+
+        if (lives <= 0) {
+            
+        }
     }
 
     private void DeactivateAbility()

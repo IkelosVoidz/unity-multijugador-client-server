@@ -61,6 +61,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
     public static event Action<Vector2, float> OnOtherCharacterAbilityActivated;
     public static event Action<Vector2> OnSelfMoved;
     public static event Action<int, Vector2> OnEnemyMoved;
+    public static event Action OnPlayerDamaged;
 
     void Start()
     {
@@ -242,6 +243,13 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 break;
             case 0x11: // The server says a player has recieved damage
                 string collidedCharacter = stream.ReadFixedString128().ToString();
+
+                if (collidedCharacter == m_characterChosen)
+                {
+                    OnPlayerDamaged?.Invoke();
+                }
+
+                
 
                 Debug.Log($"Server reported collision: {collidedCharacter} with Enemy.");
                 break;

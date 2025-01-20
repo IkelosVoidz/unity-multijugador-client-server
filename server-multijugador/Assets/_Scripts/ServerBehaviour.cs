@@ -36,8 +36,10 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     [SerializeField] List<PlayerReference> m_initialPlayerReferences = new List<PlayerReference>();
     [SerializeField] public float moveDistanceThreshold = 1f;
 
-    //TODO : mover a EnemyBehaviour y aqui hacer una lista de enemigos (mas info abajo en el bloque de TO DOS )
-
+    [SerializeField] List<EnemyBehaviour> m_enemies;
+    [SerializeField] private float positionThreshold = 0.05f; // Minimum distance to trigger an update instantly
+    [SerializeField] private float updateInterval = 0.1f; // Time in seconds between updates
+    private float updateTimer;
 
     [SerializeField] GameObject m_projectilePrefab;
 
@@ -74,6 +76,10 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         m_Driver.Listen();
         Debug.Log($"Servidor iniciado en la IP: {GetLocalIPAddress()} y puerto {endpoint.Port}");
         IP_Text.text = $"IP: {GetLocalIPAddress()}:{endpoint.Port}";
+
+        updateTimer = 0f;
+
+        for (int i = 0; i < m_enemies.Count; i++) m_enemies[i].ID = i; // Setejem les IDs dels enemics
     }
 
     private string GetLocalIPAddress()
@@ -150,7 +156,6 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
             SendAvailableCharacters(c);
         }
 
-
         for (int i = 0; i < m_Connections.Length; i++)
         {
             if (m_Connections[i].IsCreated)
@@ -181,16 +186,11 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         //TODO : finalmente llama a notifyColision desde el OnTriggerEnter, para el personaje correcto haces un tryGetComponent RemotePlayerBehaviour y si lo encuentra buscas el .character y se lo pasas al metodo*/
         //TODO : creas un prefab enemigo le metes sprite renderer collider con trigger y el script EnemyBehaviour y creas varios enemigos, asegurate de actualizar el array serializado
 
-        UpdateEnemyPosition(); // Actualiza la posición del enemigo //TODO : esto pa fuera
+        updateTimer = Mathf.Max(0f, updateTimer - Time.deltaTime);
 
-        CheckPlayerEnemyCollisions(); //TODO : esto pa fuera
-
-        // Envía la posición del enemigo a los clientes
-        foreach (var connection in m_Connections)
+        if (updateTimer <= 0f) // Update the positions of all the enemies' positions if timer has elapsed
         {
-            if (connection.IsCreated)
-                //TODO : esto puede estar dentro del primer for de las conexiones, dentro del isCreated , mas clean
-                SendEnemyPosition(connection);
+            SendEnemyPositions();
         }
     }
 
@@ -370,48 +370,24 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         m_Driver.EndSend(writer);
     }
 
-    //TODO : este metodo da igual 
-    private void CheckPlayerEnemyCollisions()
+    public void SendEnemyPositions() //0x09
     {
-        foreach (var player in m_playerReferences.Values)
+        foreach (var conn in m_Connections)
         {
-            Vector2 playerPosition = player.transform.position;
-            Vector2 enemyPosition = enemyTransform.position;
-
-            // Assuming a radius-based collision detection
-            float playerRadius = 0.5f; // Adjust as needed
-            float enemyRadius = 0.5f;  // Adjust as needed
-
-            if (Vector2.Distance(playerPosition, enemyPosition) < playerRadius + enemyRadius)
+            foreach (var enemy in m_enemies)
             {
-                HandlePlayerEnemyCollision(player);
+                Vector2 enemyPos = enemy.GetActualPosition();
+
+                m_Driver.BeginSend(m_Pipeline, conn, out var writer);
+                writer.WriteByte(0x09); // Tipo de mensaje: posición del enemigo
+                writer.WriteInt(enemy.ID);
+                writer.WriteFloat(enemyPos.x);
+                writer.WriteFloat(enemyPos.y);
+                m_Driver.EndSend(writer);
             }
+
+            updateTimer = updateInterval;
         }
-    }
-
-    //TODO: este metodo da igual 
-    private void HandlePlayerEnemyCollision(PlayerReference player)
-    {
-        Debug.Log($"Player {player.character} collided with the enemy!");
-
-        foreach (var connection in m_Connections)
-        {
-            if (connection.IsCreated)
-                NotifyCollision(connection, player.character);
-        }
-    }
-
-    //TODO : Esto tendras que llamarlo por cada enemigo en el array de enemigos si se ha movido suficiente , si no, early return del bucle
-    public void SendEnemyPosition(NetworkConnection connection) //0x09
-    {
-
-        //TODO : recorrer todas las conexiones
-        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-        writer.WriteByte(0x09); // Tipo de mensaje: posición del enemigo
-        writer.WriteInt(0);
-        writer.WriteFloat(enemyTransform.position.x);
-        writer.WriteFloat(enemyTransform.position.y);
-        m_Driver.EndSend(writer);
     }
 
 
@@ -428,14 +404,16 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
             m_Driver.EndSend(writer);
         }
     }
-    //TODO : llama a este metodo desde EnemyBehaviour, no hace falta pasarle la conexion porque ya recorreras todas las conexiones
-    public void NotifyCollision(NetworkConnection connection, string character) //0x11
+
+    public void OnPlayerDamaged(string character) //0x11
     {
-        //TODO : recorrer todas las conexiones 
-        m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-        writer.WriteByte(0x11); // Message type for collision
-        writer.WriteFixedString128(character);
-        m_Driver.EndSend(writer);
+        foreach (var conn in m_Connections)
+        {
+            m_Driver.BeginSend(m_Pipeline, conn, out var writer);
+            writer.WriteByte(0x11); // Message type for collision
+            writer.WriteFixedString128(character);
+            m_Driver.EndSend(writer);
+        }
     }
 
 
@@ -458,19 +436,6 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
             m_Driver.EndSend(writer);
         }
     }
-
-    //TODO : Esto en EnemyBehaviour, en su update
-    private void UpdateEnemyPosition()
-    {
-        Vector2 currentPosition = enemyTransform.position;
-        currentPosition += enemyDirection * enemySpeed * Time.deltaTime;
-
-        if (currentPosition.x > 10 || currentPosition.x < -10)
-            enemyDirection = -enemyDirection;
-
-        enemyTransform.position = currentPosition;
-    }
-
 
     public void CreateProjectile(Vector2 position, float direction)
     {

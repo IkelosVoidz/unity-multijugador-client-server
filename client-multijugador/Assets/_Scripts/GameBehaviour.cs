@@ -2,19 +2,31 @@
 using System.Collections.Generic;
 using UnityEditor.PackageManager;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GameBehaviour : MonoBehaviour
 {
-    private void OnEnable() { ClientBehaviour.OnOtherCharacterSelected += SpawnPlayer; }
+    private void OnEnable() 
+    { 
+        ClientBehaviour.OnOtherCharacterSelected += SpawnPlayer;
+        ClientBehaviour.OnPlayerDamaged += LoseLife;
+    }
 
+    private void OnDisable() 
+    {
+        ClientBehaviour.OnOtherCharacterSelected -= SpawnPlayer;
+        ClientBehaviour.OnPlayerDamaged -= LoseLife;
+    }
 
-    private void OnDisable() { ClientBehaviour.OnOtherCharacterSelected -= SpawnPlayer; }
+    public Image[] heartImages;
+    public Sprite fullHeartSprite;
+    public Sprite emptyHeartSprite;
 
     [SerializeField] private GameObject clientPlayerPrefab;
     [SerializeField] private GameObject serverPlayerPrefab;
-
     [SerializeField] private GameObject arrowPrefab;
 
+    private int lifes = 3;
 
 
     void Start()
@@ -53,5 +65,23 @@ public class GameBehaviour : MonoBehaviour
     public void SpawnArrow(Vector2 position)
     {
         Instantiate(arrowPrefab, Vector2.zero, Quaternion.identity);
+    }
+
+    public void LoseLife()
+    {
+        lifes--;
+        // TODO : se envia al principio? se hace inmortal un tiempo?
+
+        if (lifes <= 0)
+        {
+            //TODO : hay que hacer algo si el player se queda sin vidas, llamar a la escena you lose?
+            return ;
+        }
+
+        for (int i = 0; i < heartImages.Length; i++)
+        {
+            if (lifes < i + 1) heartImages[i].sprite = emptyHeartSprite;
+            else heartImages[i].sprite = fullHeartSprite;
+        }
     }
 }
