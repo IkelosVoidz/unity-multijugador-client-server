@@ -23,7 +23,7 @@ public class ArrowBehaviour : MonoBehaviour
 
         if (isEnemy)
         {
-            ServerBehaviour.Instance.NotifyEnemyHit(other.gameObject);
+            ServerBehaviour.Instance.OnEnemyHit(other.gameObject);
         }
 
         DestroyProjectile();

@@ -22,7 +22,7 @@ public class MeleeAbility : IAbility
         Collider2D[] hitColliders = Physics2D.OverlapBoxAll(boxCenter, boxSize, 0, 1 << LayerMask.NameToLayer("Enemy"));
         foreach (var hitCollider in hitColliders)
         {
-            ServerBehaviour.Instance.NotifyEnemyHit(hitCollider.gameObject);
+            ServerBehaviour.Instance.OnEnemyHit(hitCollider.gameObject);
         }
     }
 }

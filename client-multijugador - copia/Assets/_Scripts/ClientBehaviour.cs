@@ -14,7 +14,6 @@ public class PlayerReference
     public Vector2 position;
     public Vector2 initialPosition;
     public Vector2 velocity;
-
 }
 public class EnemyReference
 {
@@ -53,6 +52,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
 
     public List<PlayerReference> m_players = new List<PlayerReference>();
     public List<EnemyReference> m_enemies = new List<EnemyReference>();
+    public List<int> m_DeadEnemiesIDs = new List<int>();
 
     //events
     public static event Action<PlayerReference> OnOtherCharacterSelected;
@@ -62,6 +62,7 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
     public static event Action<Vector2> OnSelfMoved;
     public static event Action<int, Vector2> OnEnemyMoved;
     public static event Action OnPlayerDamaged;
+    public static event Action<int> OnEnemyDamaged;
 
     void Start()
     {
@@ -109,6 +110,14 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
             else if (cmd == NetworkEvent.Type.Disconnect)
             {
                 Debug.Log("Desconexión del servidor.");
+
+                if (m_Connection.IsCreated)
+                {
+                    // Disconnect the connection from the server if it's still created
+                    m_Driver.Disconnect(m_Connection);
+                    Debug.Log("Player has been disconnected.");
+                }
+
                 m_Connection = default;
             }
         }
@@ -196,8 +205,8 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                 Debug.Log("El personatge ha estat escollit per una altra connexió");
                 break;
 
-            case 0x05: //El servidor t'ha capat la posicio perque estas hackejant
-                Debug.Log("El servidor t'ha capat la posicio perque estas hackejant");
+            case 0x05: //El servidor t'ha capat la posicio perque estas hackejant o perquè has respawnejat
+                Debug.Log("El servidor t'ha capat la posicio perque estas hackejant o perquè has respawnejat");
 
                 float xSelf2 = stream.ReadFloat();
                 float ySelf2 = stream.ReadFloat();
@@ -234,12 +243,33 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                     return;
                 }
 
-                enemyReference = new EnemyReference { enemyId = enemyId, position = newPosEnemy };
-                m_enemies.Add(enemyReference);
+                if (!m_DeadEnemiesIDs.Contains(enemyId)) // si no és un enemic que ja ha mort, el creem
+                {
+                    enemyReference = new EnemyReference { enemyId = enemyId, position = newPosEnemy};
+                    m_enemies.Add(enemyReference);
+                }
+
                 break;
             case 0x10: //The server says that an enemy has recieved damage, it sends the id of the enemy
                 int enemyIdRecievedDamage = stream.ReadInt();
                 Debug.Log($"Server reported Enemy: {enemyIdRecievedDamage} recieved damage.");
+
+                if (m_DeadEnemiesIDs.Contains(enemyIdRecievedDamage)) // Check if this enemy is already marked as dead
+                {
+                    Debug.LogWarning($"Enemy with ID {enemyIdRecievedDamage} is already despawned on the client.");
+                    return;
+                }
+
+                m_DeadEnemiesIDs.Add(enemyIdRecievedDamage);
+
+                var enemyRef = m_enemies.FirstOrDefault(enemy => enemy.enemyId == enemyIdRecievedDamage);
+
+                if (enemyRef != null)
+                {
+                    m_enemies.Remove(enemyRef);
+                    OnEnemyDamaged?.Invoke(enemyIdRecievedDamage);
+                }
+
                 break;
             case 0x11: // The server says a player has recieved damage
                 string collidedCharacter = stream.ReadFixedString128().ToString();
@@ -249,17 +279,18 @@ public class ClientBehaviour : PersistentSingleton<ClientBehaviour>
                     OnPlayerDamaged?.Invoke();
                 }
 
-                
-
                 Debug.Log($"Server reported collision: {collidedCharacter} with Enemy.");
                 break;
             case 0x12:
                 Destroy(m_projectileRef);
                 m_canSpawnProjectile = true;
                 break;
-            case 0x13:// The server says a character has crossed the line i cant fight this time now i can feel the liiiine shine on my faaace did i diisappoiint you , will they still let me oover, if ii cross the liiine
-                Debug.Log($"Server reported a character has crossed the line.");
-                SceneManager.LoadScene("WinScene");
+            case 0x13: // The server says the game has ended 
+                int isWin = stream.ReadInt();
+
+                if (isWin == 1) SceneManager.LoadScene("WinScene");
+                else if (isWin == 0) SceneManager.LoadScene("LoseScene");
+
                 break;
             case 0x14: // Escena de espera
                 Debug.Log("Esperando a otros jugadores...");

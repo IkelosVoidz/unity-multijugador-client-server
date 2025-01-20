@@ -70,13 +70,6 @@ public class GameBehaviour : MonoBehaviour
     public void LoseLife()
     {
         lifes--;
-        // TODO : se envia al principio? se hace inmortal un tiempo?
-
-        if (lifes <= 0)
-        {
-            //TODO : hay que hacer algo si el player se queda sin vidas, llamar a la escena you lose?
-            return ;
-        }
 
         for (int i = 0; i < heartImages.Length; i++)
         {

@@ -61,6 +61,5 @@ public class ClientPlayerBehaviour : PlayerBehaviour
     public override void TakeDamage()
     {
         base.TakeDamage();
-        //TODO : health behaviour
     }
 }

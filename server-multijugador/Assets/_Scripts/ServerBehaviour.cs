@@ -8,6 +8,12 @@ using System.Net;
 using System.Net.Sockets;
 using System.Linq;
 using UnityEditor.MemoryProfiler;
+using UnityEditor.PackageManager;
+using System.Collections;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 [Serializable]
 public class PlayerReference
@@ -16,6 +22,7 @@ public class PlayerReference
     public Transform transform;
     public Vector2 lastRecievedVelocity;
     public SimulatedPlayerBehaviour behaviour;
+    public int lives;
 }
 
 public class ServerBehaviour : StaticSingleton<ServerBehaviour>
@@ -36,16 +43,13 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     [SerializeField] List<PlayerReference> m_initialPlayerReferences = new List<PlayerReference>();
     [SerializeField] public float moveDistanceThreshold = 1f;
 
+    private List<int> m_DeadEnemiesIDs = new List<int>();
     [SerializeField] List<EnemyBehaviour> m_enemies;
-    [SerializeField] private float positionThreshold = 0.05f; // Minimum distance to trigger an update instantly
     [SerializeField] private float updateInterval = 0.1f; // Time in seconds between updates
     private float updateTimer;
+    private float shutdownDelay = 5f; // Time in seconds before shutdown
 
     [SerializeField] GameObject m_projectilePrefab;
-
-    [SerializeField] private Transform enemyTransform; // Transform del enemigo
-    [SerializeField] private float enemySpeed = 2.0f;   // Velocidad del enemigo
-    private Vector2 enemyDirection = Vector2.right;    // Dirección inicial del movimiento
 
     Dictionary<NetworkConnection, PlayerReference> m_playerReferences = new Dictionary<NetworkConnection, PlayerReference>();
 
@@ -178,14 +182,6 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
             }
         }
 
-        //TODO : pol saca toda esta logica de aqui que aqui no debe llegar si no hay players conectados y este script solo se deberia de encargar de recibir y enviar mensajes, nada de controlar los enemigos
-        //TODO : metelo en otro script EnemyBehaviour , meteselo a cada enemigo de la escena y envia la info a este, ahora es un singleton (antes no lo era) 
-        //TODO : mueve al enemigo desde su update y controlas el envio de la posicion desde aqui como ya lo haces pero sin enviarla a cada frame, controlala como hice yo con los players
-        //TODO : puedes hacer un array de gameObjects (los enemigos) , crear un array de Vector2 con la misma length del array de gameObjects y metiendole la posicion inicial de cada enemigo
-        //TODO : y ir comparando si se han movido X cantidad desde la ultima posicion enviada, entonces envias, actualizas la ultima posicion enviada, y palante 
-        //TODO : finalmente llama a notifyColision desde el OnTriggerEnter, para el personaje correcto haces un tryGetComponent RemotePlayerBehaviour y si lo encuentra buscas el .character y se lo pasas al metodo*/
-        //TODO : creas un prefab enemigo le metes sprite renderer collider con trigger y el script EnemyBehaviour y creas varios enemigos, asegurate de actualizar el array serializado
-
         updateTimer = Mathf.Max(0f, updateTimer - Time.deltaTime);
 
         if (updateTimer <= 0f) // Update the positions of all the enemies' positions if timer has elapsed
@@ -233,7 +229,8 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
                     character = selectedCharacter,
                     transform = m_initialPlayerReferences[m_Connections.IndexOf(connection)].transform,
                     behaviour = m_initialPlayerReferences[m_Connections.IndexOf(connection)].behaviour,
-                    lastRecievedVelocity = Vector2.zero
+                    lastRecievedVelocity = Vector2.zero,
+                    lives = 3
                 };
                 m_playerReferences[connection] = playerReference;
 
@@ -372,9 +369,9 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
 
     public void SendEnemyPositions() //0x09
     {
-        foreach (var conn in m_Connections)
+        foreach (var enemy in m_enemies)
         {
-            foreach (var enemy in m_enemies)
+            foreach (var conn in m_Connections)
             {
                 Vector2 enemyPos = enemy.GetActualPosition();
 
@@ -391,28 +388,73 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
     }
 
 
-    public void NotifyEnemyHit(GameObject enemy) //0x10
+    public void OnEnemyHit(GameObject enemy) //0x10
     {
-        foreach (var connection in m_Connections)
+        if (enemy.TryGetComponent(out EnemyBehaviour enemyBehaviour))
         {
-            m_Driver.BeginSend(m_Pipeline, connection, out var writer);
-            writer.WriteByte(0x10);
-            //TODO : Chequear en que indice esta el enemigo int enemyIndex = enemyList.IndexOf(enemy);
-            int enemyIndex = 0;
+            int enemyID = enemyBehaviour.ID;
 
-            writer.WriteInt(enemyIndex);
-            m_Driver.EndSend(writer);
+            if (m_DeadEnemiesIDs.Contains(enemyID)) return;
+
+            if (m_enemies.Contains(enemyBehaviour)) // Matar l'enemic
+            {
+                m_enemies.Remove(enemyBehaviour);
+                m_DeadEnemiesIDs.Add(enemyID);
+                Destroy(enemy);
+
+                Debug.Log("enemy #" + enemyID + " should be dead");
+            }
+
+            foreach (var connection in m_Connections) // Notificar a tots els clients que un enemic ha mort
+            {
+                m_Driver.BeginSend(m_Pipeline, connection, out var writer);
+                writer.WriteByte(0x10);
+                writer.WriteInt(enemyID);
+                m_Driver.EndSend(writer);
+            }
         }
     }
 
     public void OnPlayerDamaged(string character) //0x11
     {
-        foreach (var conn in m_Connections)
+        foreach (var playerRef in m_playerReferences.Values)
+        {
+            if (playerRef.character == character)
+            {
+                playerRef.lives--;
+
+                Debug.Log("player lives: " + playerRef.lives);
+
+                if (playerRef.lives <= 0) NotifyPlayersGameEnded(0); // Si el player al que han fet mal no li queden vides, notificar als players que han perdut
+                else NotifyPlayersLostLife(character);
+                return;
+            }
+        }
+    }
+
+    private void NotifyPlayersLostLife(string character)
+    {
+        foreach (var conn in m_Connections) // Enviar a totes les connexions quin personatge ha perdut una vida (si no les ha perdut totes)
         {
             m_Driver.BeginSend(m_Pipeline, conn, out var writer);
             writer.WriteByte(0x11); // Message type for collision
             writer.WriteFixedString128(character);
             m_Driver.EndSend(writer);
+        }
+
+        foreach (KeyValuePair<NetworkConnection, PlayerReference> KVP in m_playerReferences) {
+            NetworkConnection conn = KVP.Key;
+            PlayerReference playerRef = KVP.Value;
+
+            if (playerRef.character == character)
+            {
+                Vector2 newPos = new Vector2() { x = -8.59f, y = -3.51f };
+                SendCorrectPositionToClients(conn, newPos);
+
+                m_playerReferences[conn].transform.SetPositionAndRotation(newPos, m_playerReferences[conn].transform.rotation);
+                m_playerReferences[conn].lastRecievedVelocity = new Vector2() { x = 0f, y = 0f };
+                return;
+            }
         }
     }
 
@@ -427,14 +469,26 @@ public class ServerBehaviour : StaticSingleton<ServerBehaviour>
         }
     }
 
-    public void NotifyPlayerFinish()//0x13
+    public void PlayerCrossedEndLine()
+    {
+        NotifyPlayersGameEnded(1);
+    }
+
+    private void NotifyPlayersGameEnded(int playerWon) //0x13
     {
         foreach (var connection in m_Connections)
         {
             m_Driver.BeginSend(m_Pipeline, connection, out var writer);
             writer.WriteByte(0x13); // Message type for player finish
+            writer.WriteInt(playerWon);
             m_Driver.EndSend(writer);
+
+            m_Driver.Disconnect(connection);
         }
+
+        #if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+        #endif
     }
 
     public void CreateProjectile(Vector2 position, float direction)

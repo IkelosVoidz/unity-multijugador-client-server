@@ -7984,6 +7984,7 @@ MonoBehaviour:
   serverIP: {fileID: 546304458}
   serverPort: {fileID: 865881171}
   m_projectilePrefab: {fileID: 7730708411660160927, guid: 3bfba4ed2ba54944590ea77ebb6afdf6, type: 3}
+  m_DeadEnemiesIDs: 
 --- !u!1 &546304456
 GameObject:
   m_ObjectHideFlags: 0
